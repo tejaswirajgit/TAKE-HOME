@@ -105,8 +105,10 @@ ok(!("smoking_severity" in rajeshOut.habits), "rajesh: no smoking severity when 
 assert.deepEqual(rajeshOut.past_6_months, [], "rajesh: 'none of these' exports as an empty list");
 ok(rajeshOut.procedures["Hair Transplant"].done === true && rajeshOut.procedures["Hair Transplant"].sessions === "1-3", "rajesh: transplant row complete");
 const rajeshQ7 = suggest(steps(rajesh).find((s) => s.id === "pregnancy_related")!, rajesh);
-ok(rajeshQ7?.value === "na", "rajesh: Q7 suggested Not applicable from Q6");
-assert.deepEqual(rajeshOut._meta.inferred, ["pregnancy_related", "past_treatment_side_effects"], "rajesh: Q7 + Q14 inferred");
+ok(rajeshQ7 === undefined, "rajesh: Q6 'Not applicable' must NOT pre-fill Q7 (a pregnant patient has no periods either)");
+const meno = suggest(steps({ menstrual_cycle: "menopausal" }).find((s) => s.id === "pregnancy_related")!, { menstrual_cycle: "menopausal" });
+ok(meno?.value === "na", "menopausal → Q7 suggested Not applicable");
+assert.deepEqual(rajeshOut._meta.inferred, ["past_treatment_side_effects"], "rajesh: only Q14 inferred");
 
 // ── Inference for a patient who has tried nothing ──────────────────────────
 const fresh: Answers = { ...rajesh, products: Object.fromEntries(Object.keys(rajesh.products as Json).map((k) => [k, { used: "no" }])), procedures: Object.fromEntries(Object.keys(rajesh.procedures as Json).map((k) => [k, { done: "no" }])) };
@@ -119,6 +121,31 @@ ok(steps(rajesh).filter((s) => s.kind === "card").length === 3, "rajesh: 2 produ
 // ── Every question visible for everyone: 16 numbers, nothing skipped ────────
 ok(new Set(steps({}).map((s) => s.n)).size === 16, "empty intake still has all 16 questions");
 ok(QUESTIONS.every((q) => q.id in byKey), "every app question id is an official key");
+
+// ── Every option list in the app equals the official one, string for string ─
+const exportSet = (opts: { label: string; out?: string; uiOnly?: boolean }[]) =>
+  opts.filter((o) => !o.uiOnly).map((o) => o.out ?? o.label).sort();
+const same = (a: string[], b: string[], where: string) =>
+  assert.deepEqual(a, [...b].sort(), `${where}: option lists differ`);
+for (const q of QUESTIONS) {
+  const off = byKey[q.id];
+  if (q.options) same(exportSet(q.options), off.options, q.id), checks++;
+  if (q.habits)
+    for (const r of q.habits) {
+      const row = (off.rows as Json[]).find((x) => x.key === r.id)!;
+      ok(row, `habits row ${r.id} exists officially`);
+      if (r.options) same(exportSet(r.options), row.options, `habits.${r.id}`), checks++;
+      if (r.followup?.options) same(exportSet(r.followup.options), row.followup.options, `habits.${r.followup.id}`), checks++;
+    }
+  if (q.rows && q.columns) {
+    same(q.rows.map((r) => r.out).sort(), off.rows, `${q.id} rows`), checks++;
+    for (const c of q.columns) {
+      const col = (off.columns as Json[]).find((x) => x.key === c.id)!;
+      ok(col, `${q.id} column ${c.id} exists officially`);
+      if (c.options) same(exportSet(c.options), col.options, `${q.id}.${c.id}`), checks++;
+    }
+  }
+}
 
 // ── The Hinglish rule parser ───────────────────────────────────────────────
 const step = (id: string, a: Answers = {}) => steps(a).find((s) => s.id === id)!;
@@ -137,14 +164,23 @@ const cases: [string, string, unknown][] = [
   ["duration", "do saal se", "over-1y"],
   ["sample_type", "thook wala theek hai", "saliva"],
   ["past_6_months", "bahut tension thi aur dengue hua tha", ["stress", "fever"]],
+  ["duration", "6 mahine se kam", "under-6m"],
+  ["menstrual_cycle", "band nahi hue abhi", null], // negated → not a confident Menopausal; LLM decides
+  ["adult_acne_oily_skin", "haan na hota hai", "yes"], // "na" as a tag particle is not a "no"
+  ["age_hair_loss_began", "95 saal", null], // outside the 1–90 range → no suggestion
+  ["family_history", "mummy bhi", ["mother"]],
 ];
+// Speaking adds to what was already tapped.
+assert.deepEqual(parseRules(step("family_history"), "mummy bhi", ["father"]).value, ["father", "mother"], "parser: multi merges with tapped");
+checks++;
 for (const [id, said, expected] of cases) {
   const r = parseRules(step(id), said);
   assert.deepEqual(r.value, expected, `parser: "${said}" → ${JSON.stringify(expected)} (got ${JSON.stringify(r.value)})`);
   checks++;
 }
 ok(parseRules(step("adult_acne_oily_skin"), "hair").value === null, 'parser: "hair" is not "haan"');
-ok(parseNumber("saath saal") === 60, "parser: Hindi number words");
+ok(parseNumber("pachaas saal ki umar") === 50 && parseNumber("thirty five") === 35, "parser: Hindi + English number words");
+ok(parseNumber("papa ke saath") === null, 'parser: "saath" (with) is not sixty');
 const pick = parseRules(step("products.pick"), "tel aur goli li thi").value as Json;
 ok(pick.oils.used === "yes" && pick.oral_minoxidil.used === "yes" && pick.topical_minoxidil.used === "no", "parser: picker fills every gate");
 

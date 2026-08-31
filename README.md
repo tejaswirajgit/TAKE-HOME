@@ -1,14 +1,81 @@
 # The intake that fills itself
 
-A 16-question hair & scalp clinic intake a patient can finish on a phone in about two minutes — tap or speak, in English or Hindi — that hands the doctor a complete, structured picture before the consultation.
+A hair & scalp clinic's 16-question intake, rebuilt so a patient finishes it on a phone in about two minutes — tap or speak, in English or हिंदी — and the doctor gets a complete, structured picture before the consultation starts.
 
-Live link and full write-up coming with the final commit.
+**Live:** _link added at final commit_ · **Verify the fill:** `corepack pnpm verify`
 
-## Run
+---
+
+## What the patient sees
+
+One route, one calm column, one question per screen. Every patient sees the same 16 questions in the clinic's order; the app never asks anything the paper form doesn't.
+
+| The question | How it gets answered |
+|---|---|
+| 1 · Age hair loss began | Decade chips (Teens · 20s · 30s · 40s · 50+) seed a −/+ stepper; two typed digits drop the keyboard so the button is never hidden. |
+| 2, 15 · single choice | One tap, advances. |
+| 3, 4, 5, 10 · multi choice | Chips + Continue. "None of these" stands alone and advances in one tap. |
+| 6 · Menstrual cycle | Asked to everyone, "Not applicable" is the first chip — no sex question anywhere. |
+| 7 · Pregnancy-related | Asked to everyone; **inferred** only when Q6 was Menopausal ("Not applicable" pre-selected, one tap to confirm, any other chip overrides). Q6 = "Not applicable" deliberately infers nothing — a pregnant or breastfeeding patient has no periods either, and this is her question. |
+| 8, 9 · yes / no | Two big chips, advances. |
+| 11 · Habits | One flowing screen of six rows; smoking "yes" reveals how many, salon "yes" reveals a text field with dictation. The button reads "3 left" and jumps to the missed row instead of going dead. |
+| 12 · Products, 13 · Procedures | **Picker, then one small card per pick.** "None of these" fills all rows in one tap; unpicked rows are exported as `used: false`. A 20-cell table becomes ~3 taps for most people. |
+| 14 · Side effects / poor response | **Inferred** from 12/13: any side effect or "didn't help" pre-selects Yes with an editable, seeded description; nothing tried pre-selects No. Always one tap to confirm. |
+| 16 · Consent | Plain-language sentence naming the sample chosen in Q15; nothing pre-selected, no auto-advance. |
+
+Then the **review screen** — the filled form, sections A–E, with Edit on every row and the schema-aligned JSON visible and copyable — and a done screen: *"Bas ho gaya. The doctor has your full picture. Please have a seat."*
+
+Progress is honest (`n / 16`), answers autosave on-device so a patient can put the phone down and resume, and nothing is ever committed from an inference or a spoken answer without a tap.
+
+### Voice, both ways
+- **🎤 Speak your answer** appears where speaking beats tapping (the number, the multi-selects, the two pickers) and as dictation inside text fields. In **🔊 Read-aloud** mode it appears on every question.
+- **🔊 Read aloud** reads each question and its options in the chosen language, then reads back what it heard ("Suna: Father, Siblings — confirm?").
+- Both are a fast lane, never a trap: chips stay underneath, and the mic quietly disappears when it can't work (no permission, no key, or two failed calls).
+
+### Accessible by design
+Radio/checkbox semantics on every chip, focus moves to each new question, live regions announce what was heard and copied, a skip link, visible focus rings, pinch-zoom left on, 60 px targets, reduced-motion respected. A laptop can drive the whole intake with **1–9**, **Enter** and **Backspace**. A blind or low-vision patient can finish it alone with a screen reader, or with read-aloud + voice.
+
+## Choices (what I bought, what I built, and why)
+
+| Area | Choice | Why |
+|---|---|---|
+| Framework | Next.js 15 · React 19 · Tailwind · TypeScript | One static page + three tiny serverless routes; zero-config Vercel deploy. |
+| Speech → text | **Sarvam AI `saaras:v3`**, `mode: translit` | Built for Indian languages and Hinglish. `translit` returns romanized text ("pachees saal") so the free rule parser can read it. |
+| Text → answer | **Rules first** (`lib/voice-parse.ts`), then **Sarvam `sarvam-105b`** with `json_schema` output (`/api/parse`) | Most utterances resolve offline for free with token-matched Hinglish synonyms ("papa aur bhai" → father, siblings). The LLM is called only when rules give up, and is constrained to the question's own option values — it cannot invent. |
+| Text → speech | **Sarvam `bulbul:v3`** with browser `speechSynthesis` fallback | Natural Hindi/English voices; falls back to the device voice if the route is slow. |
+| Persistence | `localStorage` | On-device, no account, nothing leaves the browser. |
+| Vendor seam | `lib/voice.ts` is the only file that knows Sarvam | Swap STT/LLM/TTS by editing one file; the UI never sees a key. |
+
+Bought: the platform, the speech models, the hosting. Built: the schema-driven flow engine, per-question controls, inference-then-confirm, the Hinglish parser, the review/export, and the verification.
+
+**Why no sex question:** the form's Q6 and Q7 already carry "Not applicable". Asking everyone both (with that chip first on Q6) keeps 16/16 coverage without collecting anything the form doesn't ask for — two taps for a man, and no wrong inference for a pregnant woman.
+
+## How I checked the form actually gets filled
+
+`corepack pnpm verify` (`scripts/verify-fill.ts`) pushes two made-up patients — **Priya, 34, PCOS, smoker** and **Rajesh, 58, diabetic, one transplant** — through the *same pure functions the app uses* (`lib/flow.ts`) and asserts: every step answered; every key, row and column of the clinic's official schema (`lib/intake-schema.json`, from haikustudio.ai) present; every exported value in that schema's option lists; follow-ups present exactly when triggered; Q6/Q7 "Not applicable" for Rajesh; the inference firing where expected; a table of Hinglish utterances parsed correctly; and the exported JSON matching checked-in snapshots (`scripts/fixtures/expected-*.json`). 210 checks.
+
+The review screen and the JSON export render from one answers object through the same functions, so what you see on the review is literally what is exported.
+
+## Run it
 
 ```bash
 corepack pnpm install
-cp .env.example .env.local   # add SARVAM_API_KEY (voice is optional — the app works fully by tapping)
-corepack pnpm dev            # http://localhost:3000
-corepack pnpm verify         # proves two made-up patients fill all 16 questions against the clinic schema
+cp .env.example .env.local     # add SARVAM_API_KEY — optional; without it the mic and read-aloud hide themselves
+corepack pnpm dev              # http://localhost:3000
+corepack pnpm verify           # the fill check above
+corepack pnpm build
 ```
+
+Deploy: Vercel, one project, env var `SARVAM_API_KEY` (Production + Preview). No real personal data anywhere; all patients are made up.
+
+## What I'd do with one more week
+- WhatsApp pre-visit link with a signed resume token, so the waiting room becomes a confirm.
+- Printable PDF of the review + an EMR webhook that POSTs the schema JSON on Finish, inferred rows flagged for the doctor.
+- Scalp photo capture on Q4, attached to the pattern row.
+- Per-question drop-off and dwell analytics to find where 55-year-olds stall — then five usability sessions with real patients and low-vision users.
+- A small classifier fine-tuned on collected Hinglish transcripts to replace the LLM fallback; streaming STT for true hands-free.
+- Marathi / Tamil strings; an attendant mode recorded in the export.
+
+---
+
+UI scaffold (palette, type ramp, chip and stepper components) started from Ankur Sinha's `haiku-intake`, used with his permission; everything the form does — the schema, flow, inference, voice, review, export and verification — is built here.

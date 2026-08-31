@@ -109,7 +109,7 @@ export const QUESTIONS: Question[] = [
     prompt: "Around what age did the hair loss begin?",
     hint: "A rough number is fine — andaaza chalega.",
     hi: { prompt: "किस उम्र में बाल झड़ना शुरू हुआ?", hint: "अंदाज़ा चलेगा — सही-सही याद न हो तो भी ठीक है।" },
-    number: { min: 5, max: 90 },
+    number: { min: 1, max: 90 },
     mic: true,
   },
   {

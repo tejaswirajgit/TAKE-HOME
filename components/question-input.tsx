@@ -38,21 +38,34 @@ export function QuestionInput(p: InputProps) {
   const { step, answers, lang, suggestion, onAnswer, onNext, dictation } = p;
   const q = step.q;
   const v = answers[q.id];
+  // A live suggestion (inferred, or just heard) is what the chips show; the
+  // stored answer is what they show otherwise. Nothing is stored until a tap.
+  const sug = suggestion?.value;
   switch (step.kind) {
     case "number":
-      return <NumberInput q={q} value={v as number | undefined} lang={lang} onAnswer={onAnswer} onNext={onNext} />;
+      return (
+        <NumberInput
+          q={q}
+          value={(sug as number | undefined) ?? (v as number | undefined)}
+          lang={lang}
+          onAnswer={onAnswer}
+          onNext={onNext}
+        />
+      );
     case "single": {
-      const shown = (typeof v === "string" ? v : undefined) ?? (suggestion?.value as string | undefined);
+      const shown = (sug as string | undefined) ?? (typeof v === "string" ? v : undefined);
       return <Chips options={q.options!} value={shown} lang={lang} onPick={(val) => onAnswer(val, q.autoAdvance !== false)} />;
     }
     case "yesno": {
-      const shown = (typeof v === "string" ? v : undefined) ?? (suggestion?.value as string | undefined);
+      const shown = (sug as string | undefined) ?? (typeof v === "string" ? v : undefined);
       return (
         <Chips cols={2} big options={YESNO_OPTIONS} value={shown} lang={lang} onPick={(val) => onAnswer(val, q.autoAdvance !== false)} />
       );
     }
     case "multi":
-      return <MultiChips options={q.options!} value={(v as string[]) ?? []} lang={lang} onChange={onAnswer} />;
+      return (
+        <MultiChips options={q.options!} value={((sug as string[] | undefined) ?? (v as string[]) ?? []) as string[]} lang={lang} onChange={onAnswer} />
+      );
     case "habits":
       return (
         <HabitsInput
@@ -65,7 +78,14 @@ export function QuestionInput(p: InputProps) {
         />
       );
     case "picker":
-      return <PickerInput q={q} value={v as Record<string, RowAnswer> | undefined} lang={lang} onAnswer={onAnswer} />;
+      return (
+        <PickerInput
+          q={q}
+          value={(sug as Record<string, RowAnswer> | undefined) ?? (v as Record<string, RowAnswer> | undefined)}
+          lang={lang}
+          onAnswer={onAnswer}
+        />
+      );
     case "card":
       return (
         <CardInput q={q} row={step.row!} value={v as Record<string, RowAnswer> | undefined} lang={lang} onAnswer={onAnswer} />
@@ -247,7 +267,8 @@ function NumberInput({
   }, [value]);
 
   const parsed = local === "" ? null : parseInt(local, 10);
-  const tooLow = parsed != null && parsed < cfg.min;
+  // Don't shout "too low" on the first digit of "45".
+  const tooLow = parsed != null && parsed < cfg.min && local.length >= 2;
   const tooHigh = parsed != null && parsed > cfg.max;
   const valid = parsed != null && !tooLow && !tooHigh;
 
@@ -551,7 +572,7 @@ function YesNoText({
 }) {
   const s = STR[lang];
   const sug = suggestion?.value as Detail | undefined;
-  const shown = value ?? sug;
+  const shown = sug ?? value;
   const pick = (v: string) => {
     if (v === "no") onAnswer({ value: "no" }, true);
     else onAnswer({ value: "yes", detail: value?.detail ?? sug?.detail ?? "" });

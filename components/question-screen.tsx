@@ -27,19 +27,23 @@ export function QuestionScreen({ intake }: { intake: Intake }) {
   const q = step.q;
 
   const answered = isAnswered(step, answers);
+  const stored = answers[q.id];
   const inferred = useMemo(() => suggest(step, answers), [step, answers]);
   const [heard, setHeard] = useState<{ transcript: string; value: AnswerValue | null } | null>(null);
   const h1Ref = useRef<HTMLHeadingElement>(null);
+  const stepRef = useRef(step.id);
+  stepRef.current = step.id;
   const speech = useSpeech(readAloud);
 
-  // A spoken answer becomes a suggestion; a null verdict just shows the transcript.
+  // A spoken answer becomes a suggestion; an inference only while nothing is
+  // stored yet (the moment the patient taps anything, their tap wins).
   const suggestion: Suggestion | undefined = useMemo(() => {
     if (heard?.value != null) {
       const reason = `${s.heard}: “${heard.transcript}” → ${valueLabel(step, heard.value, lang)}`;
       return { value: heard.value, reason, hi: reason };
     }
-    return answered ? undefined : inferred;
-  }, [heard, inferred, answered, step, lang, s]);
+    return stored === undefined ? inferred : undefined;
+  }, [heard, inferred, stored, step, lang, s]);
 
   useEffect(() => {
     setHeard(null);
@@ -51,7 +55,7 @@ export function QuestionScreen({ intake }: { intake: Intake }) {
   // Read-aloud: the question (and any pre-filled reason) on every step.
   useEffect(() => {
     if (!readAloud) return;
-    const extra = !answered && inferred ? ` ${tx(lang, inferred.reason, inferred.hi)}` : "";
+    const extra = stored === undefined && inferred ? ` ${tx(lang, inferred.reason, inferred.hi)}` : "";
     speech.speak(speakText(step, answers, lang) + extra, lang);
     return () => speech.stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -59,7 +63,9 @@ export function QuestionScreen({ intake }: { intake: Intake }) {
 
   const onTranscript = useCallback(
     async (transcript: string) => {
+      const forStep = step.id;
       const r = await parseAnswer(step, transcript, answers[q.id]);
+      if (stepRef.current !== forStep) return; // the patient has moved on — never land on the next question
       setHeard({ transcript, value: r.value });
       if (readAloud) {
         const line = r.value != null ? `${s.heard}: ${valueLabel(step, r.value, lang)}. ${s.confirm}?` : s.tryAgain;
@@ -105,7 +111,9 @@ export function QuestionScreen({ intake }: { intake: Intake }) {
   } else if (suggestion) {
     label = s.confirm;
     enabled = true;
-    onCta = () => intake.answer(q.id, suggestion.value, true);
+    // Commit the suggestion; advance only if that actually completes the step
+    // (a spoken "haan" on Q14 still needs its description).
+    onCta = () => intake.answer(q.id, suggestion.value, isAnswered(step, { ...answers, [q.id]: suggestion.value }));
   }
 
   // ── Keyboard lane: 1–9 pick a chip, Enter continues, Backspace goes back ──
@@ -113,8 +121,10 @@ export function QuestionScreen({ intake }: { intake: Intake }) {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
       const typing = !!t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA");
+      const onControl = !!t?.closest("button, a, summary");
       if (e.key === "Enter") {
-        if (!typing && enabled) {
+        // Enter on a focused button/link must activate it, not the sticky CTA.
+        if (!typing && !onControl && enabled) {
           e.preventDefault();
           onCta();
         }
@@ -122,12 +132,16 @@ export function QuestionScreen({ intake }: { intake: Intake }) {
       }
       if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === "Backspace") {
-        e.preventDefault();
-        intake.back();
+        if (intake.index > 0 || intake.editing) {
+          e.preventDefault();
+          intake.back();
+        }
         return;
       }
       if (step.kind !== "number" && /^[1-9]$/.test(e.key)) {
-        const chips = document.querySelectorAll<HTMLButtonElement>("#answers [data-chip]");
+        // Inside a fieldset (habit row / card field) the digits index that row's chips.
+        const root = (document.activeElement as HTMLElement | null)?.closest("fieldset") ?? document.getElementById("answers");
+        const chips = root?.querySelectorAll<HTMLButtonElement>("[data-chip]") ?? [];
         chips[Number(e.key) - 1]?.click();
       }
     };

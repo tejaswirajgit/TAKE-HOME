@@ -85,6 +85,12 @@ export function useSpeech(enabled: boolean) {
           });
           if (!res.ok) throw new Error(String(res.status));
           url = URL.createObjectURL(await res.blob());
+          // Small LRU-ish cap so one-off "Heard: …" lines don't pile up blobs.
+          if (cache.size >= 24) {
+            const [oldKey, oldUrl] = cache.entries().next().value as [string, string];
+            URL.revokeObjectURL(oldUrl);
+            cache.delete(oldKey);
+          }
           cache.set(key, url);
         }
         if (mine !== seq.current) return;

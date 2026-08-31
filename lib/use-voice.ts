@@ -34,6 +34,8 @@ const checkHealth = () => {
 };
 let sessionAvailable: boolean | null = null;
 let failures = 0;
+// One recorder at a time across every MicButton on the page (pill + dictation).
+let active = false;
 
 export function useVoice(onTranscript: (text: string) => void): Voice {
   const [available, setAvailable] = useState<boolean | null>(sessionAvailable);
@@ -112,7 +114,9 @@ export function useVoice(onTranscript: (text: string) => void): Voice {
   }, []);
 
   const start = useCallback(() => {
-    if (status !== "idle") return;
+    // Synchronous guard: a double-tap must not open a second recorder.
+    if (status !== "idle" || active || rec.current) return;
+    active = true;
     setProblem(null);
     cancelled.current = false;
     chunks.current = [];
@@ -120,11 +124,17 @@ export function useVoice(onTranscript: (text: string) => void): Voice {
     navigator.mediaDevices
       .getUserMedia({ audio: true })
       .then((stream) => {
+        if (cancelled.current) {
+          stream.getTracks().forEach((tr) => tr.stop());
+          active = false;
+          return;
+        }
         let r: MediaRecorder;
         try {
           r = new MediaRecorder(stream); // no mimeType: Safari picks audio/mp4, Chrome webm/opus
         } catch {
           stream.getTracks().forEach((tr) => tr.stop());
+          active = false;
           disable();
           return;
         }
@@ -139,6 +149,7 @@ export function useVoice(onTranscript: (text: string) => void): Voice {
           const ext = type.includes("mp4") ? "mp4" : type.includes("ogg") ? "ogg" : "webm";
           const blob = new Blob(chunks.current, { type });
           rec.current = null;
+          active = false;
           if (cancelled.current) {
             setStatus("idle");
             return;
@@ -155,6 +166,7 @@ export function useVoice(onTranscript: (text: string) => void): Voice {
         );
       })
       .catch((err: DOMException) => {
+        active = false;
         if (err?.name === "NotAllowedError" || err?.name === "NotFoundError" || err?.name === "SecurityError") disable();
         else setProblem("failed");
       });
@@ -172,6 +184,7 @@ export function useVoice(onTranscript: (text: string) => void): Voice {
     abort.current?.abort();
     const r = rec.current;
     if (r && r.state === "recording") r.stop();
+    else active = false;
     clearTimers();
     setStatus("idle");
   }, []);

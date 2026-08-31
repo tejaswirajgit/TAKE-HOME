@@ -2,7 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Answers, AnswerValue, Lang } from "./intake-schema";
-import { Step, firstUnanswered, isAnswered, steps as buildSteps } from "./flow";
+import { Step, firstUnanswered, isAnswered, isInferred, steps as buildSteps } from "./flow";
+
+// When a source answer changes, an answer the app inferred from it (and the
+// patient merely confirmed) is no longer trustworthy — drop it so it gets
+// re-suggested from the new facts.
+const DEPENDENTS: Record<string, string> = {
+  menstrual_cycle: "pregnancy_related",
+  products: "past_treatment_side_effects",
+  procedures: "past_treatment_side_effects",
+};
 import { Saved, Stage, clearIntake, loadIntake, saveIntake } from "./intake-storage";
 
 // React state over the pure flow engine: owns the answers, the current step,
@@ -100,6 +109,14 @@ export function useIntake(): Intake {
         const { [id]: _drop, ...rest } = answers;
         nextAnswers = rest;
       } else nextAnswers = { ...answers, [id]: value };
+      const dep = DEPENDENTS[id];
+      if (dep && dep in answers && answers[id] !== value) {
+        const depStep = buildSteps(answers).find((s) => s.id === dep);
+        if (depStep && isInferred(depStep, answers)) {
+          const { [dep]: _stale, ...rest } = nextAnswers;
+          nextAnswers = rest;
+        }
+      }
       setAnswers(nextAnswers);
       if (adv) advance(nextAnswers);
     },
@@ -114,9 +131,13 @@ export function useIntake(): Intake {
       setStage("review");
       return;
     }
-    if (clamped === 0) setStage("welcome");
-    else setIndex(clamped - 1);
-  }, [editing, clamped]);
+    if (clamped === 0) {
+      // Back to the intro keeps the answers: the welcome offers Continue / Start fresh.
+      if (Object.keys(answers).length)
+        setSaved({ answers, index: 0, stage: "questions", lang, readAloud, savedAt: Date.now() });
+      setStage("welcome");
+    } else setIndex(clamped - 1);
+  }, [editing, clamped, answers, lang, readAloud]);
 
   const begin = useCallback(() => {
     setAnswers({});
@@ -131,11 +152,12 @@ export function useIntake(): Intake {
     setAnswers(saved.answers);
     setSaved(null);
     setEditing(false);
-    if (saved.stage === "review") {
+    const first = firstUnanswered(saved.answers);
+    if (saved.stage === "review" || first >= buildSteps(saved.answers).length) {
       setStage("review");
       return;
     }
-    setIndex(Math.min(saved.index, firstUnanswered(saved.answers)));
+    setIndex(Math.min(saved.index, first));
     setStage("questions");
   }, [saved]);
 

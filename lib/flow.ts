@@ -103,21 +103,15 @@ export interface Suggestion {
 }
 
 export function suggest(step: Step, a: Answers): Suggestion | undefined {
-  if (step.id === "pregnancy_related") {
-    const m = a.menstrual_cycle;
-    if (m === "menopausal")
-      return {
-        value: "na",
-        reason: "You said menopausal, so we've marked this Not applicable — confirm if that's right.",
-        hi: "आपने मेनोपॉज़ बताया, इसलिए हमने इसे 'लागू नहीं' रखा है — सही हो तो पुष्टि करें।",
-      };
-    if (m === "na")
-      return {
-        value: "na",
-        reason: "The cycle question didn't apply to you, so we've marked this Not applicable too.",
-        hi: "मासिक धर्म वाला सवाल आप पर लागू नहीं था, इसलिए यह भी 'लागू नहीं' रखा है।",
-      };
-  }
+  // Only menopause safely implies "no pregnancy-related loss". Q6 = "Not
+  // applicable" does NOT: a pregnant or breastfeeding patient has no periods
+  // either, and Q7 is exactly the question that matters for her.
+  if (step.id === "pregnancy_related" && a.menstrual_cycle === "menopausal")
+    return {
+      value: "na",
+      reason: "You said menopausal, so we've marked this Not applicable — confirm if that's right.",
+      hi: "आपने मेनोपॉज़ बताया, इसलिए हमने इसे 'लागू नहीं' रखा है — सही हो तो पुष्टि करें।",
+    };
   if (step.id === "past_treatment_side_effects") {
     const [products, procedures] = [QUESTIONS[11], QUESTIONS[12]];
     const bad: string[] = [];
@@ -156,7 +150,12 @@ export function isInferred(step: Step, a: Answers): boolean {
   if (!s) return false;
   const v = a[step.q.id];
   if (v == null) return false;
-  if (typeof s.value === "object" && !Array.isArray(s.value)) return (v as Detail).value === (s.value as Detail).value;
+  if (typeof s.value === "object" && !Array.isArray(s.value)) {
+    const got = v as Detail;
+    const want = s.value as Detail;
+    // An edited description is the patient's own words, not our inference.
+    return got.value === want.value && (got.detail ?? "").trim() === (want.detail ?? "").trim();
+  }
   return v === s.value;
 }
 
@@ -180,7 +179,7 @@ export function bodyText(q: Question, a: Answers, lang: Lang): string {
   const sampleQ = QUESTIONS[14];
   const chosen = typeof a.sample_type === "string" ? labelOf(sampleQ.options, a.sample_type, lang) : "";
   const fallback = lang === "hi" ? "लार या खून का" : "saliva or blood";
-  const sample = chosen && a.sample_type !== "either" ? chosen : fallback;
+  const sample = chosen && a.sample_type !== "either" ? (lang === "en" ? chosen.toLowerCase() : chosen) : fallback;
   return body.replace("{sample}", sample);
 }
 
@@ -252,6 +251,11 @@ export function toSchemaJson(a: Answers, lang: Lang = "en"): Record<string, unkn
 
 // ── Review: the filled form, straight from the answers ─────────────────────
 
+const COLUMN_SHORT: Record<string, { en: string; hi: string }> = {
+  helped: { en: "helped", hi: "फ़ायदा" },
+  side_effects: { en: "side effects", hi: "साइड इफ़ेक्ट" },
+};
+
 export interface FormLine {
   label: string;
   value: string;
@@ -320,7 +324,8 @@ export function buildFilledForm(a: Answers, lang: Lang): FormRow[] {
                 .columns!.map((c) => {
                   const cv = ra[c.id];
                   const shown = !cv ? dash : c.kind === "single" ? labelOf(c.options, cv, lang) : yn(cv, lang);
-                  return c.kind === "single" ? shown : `${tx(lang, c.label, c.hi).replace("?", "")}: ${shown}`;
+                  const short = COLUMN_SHORT[c.id];
+                  return c.kind === "single" || !short ? shown : `${tx(lang, short.en, short.hi)}: ${shown}`;
                 })
                 .join(" · ");
             return { label: tx(lang, r.label, r.hi), value: val };

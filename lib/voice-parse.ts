@@ -25,23 +25,26 @@ const STOP = new Set(
 );
 
 const YES = ["yes", "yeah", "yep", "yup", "haan", "han", "ha", "hanji", "haanji", "ji", "bilkul", "sahi", "correct", "right", "true", "sure", "karta", "karti", "hota", "hoti", "hun", "hoon", "kiya", "kiye"];
-const NO = ["no", "nope", "nah", "nahi", "nahin", "nai", "nhi", "na", "never", "not", "kabhi", "bilkul nahi", "nil"];
+// Not "na" (a tag particle: "hota hai na" = it does, right?) and not "kabhi"
+// ("kabhi kabhi" = sometimes) — both would flip a clear yes into a no.
+const NO = ["no", "nope", "nah", "nahi", "nahin", "nai", "nhi", "never", "not", "kabhi nahi", "bilkul nahi", "nil"];
 
 /** Spoken synonyms per option value (label words are matched automatically). */
 const SYN: Record<string, string[]> = {
-  "under-6m": ["few months", "kuch mahine", "couple of months", "recently", "abhi abhi", "teen mahine", "do mahine", "char mahine", "paanch mahine", "less than six", "6 se kam", "chhe se kam", "kuch hafte", "weeks"],
+  "under-6m": ["few months", "kuch mahine", "couple of months", "recently", "abhi abhi", "teen mahine", "do mahine", "char mahine", "paanch mahine", "less than six", "6 se kam", "chhe se kam", "kuch hafte", "weeks", "mahine se kam", "6 mahine se kam", "chhe mahine se kam", "six months se kam", "under six"],
   "6-12m": ["six months", "chhe mahine", "6 mahine", "aath mahine", "das mahine", "half year", "six to twelve", "saal se kam", "almost a year", "ek saal hone wala", "8 mahine", "9 mahine", "10 mahine"],
   "over-1y": ["year", "years", "saal", "saalon", "sal", "long time", "kaafi time", "bahut time", "barso", "over a year", "more than a year", "ek saal se zyada", "do saal", "teen saal", "kai saal"],
   father: ["father", "dad", "papa", "pitaji", "pita", "daddy", "abbu", "baba"],
   mother: ["mother", "mom", "mum", "mummy", "maa", "ma", "amma", "ammi", "mata", "mataji"],
   siblings: ["sibling", "siblings", "brother", "sister", "brothers", "sisters", "bhai", "behen", "bahan", "bhaiya", "didi", "bhai behen"],
   none: ["none", "no one", "nobody", "koi nahi", "kisi ko nahi", "kuch nahi", "kisi ko bhi nahi", "nahi hai", "not really", "nothing", "kuch bhi nahi", "koi bhi nahi"],
-  receding: ["receding", "hairline", "forehead", "maatha", "matha", "aage se", "front", "samne se", "temples"],
+  receding: ["receding", "hairline", "forehead", "maatha", "maathe", "matha", "mathe", "aage se", "front", "samne se", "temples"],
   crown: ["crown", "top", "vertex", "upar se", "upar", "choti", "sir ke upar", "peeche se", "back of head"],
   part: ["parting", "partline", "maang", "mang", "middle", "beech se", "bich se", "part line"],
   diffuse: ["diffuse", "all over", "everywhere", "overall", "sab jagah", "poore sir", "pure sir", "har jagah", "thin all over", "patle", "pura"],
   patchy: ["patch", "patches", "patchy", "spots", "gol", "circle", "circles", "ek jagah", "chakatte", "bald spot"],
-  shedding: ["shedding", "falling", "fall", "hair fall", "jhad", "jhadna", "jhad rahe", "gir rahe", "girna", "bahut jhad", "zyada jhad", "tut rahe", "jhadte"],
+  // Only the *excessive / sudden* phrasings — "jhad rahe" alone is just "falling", said for every pattern.
+  shedding: ["shedding", "hair fall", "bahut jhad", "zyada jhad", "bahut zyada", "achanak", "sudden", "suddenly", "clumps", "guchhe", "muthi", "excessive", "tut rahe", "bahut gir"],
   pcos: ["pcos", "pcod", "polycystic", "cyst", "cysts", "ovary"],
   thyroid: ["thyroid", "hypothyroid", "hyperthyroid"],
   diabetes: ["diabetes", "diabetic", "sugar", "cheeni", "shugar", "madhumeh"],
@@ -52,7 +55,7 @@ const SYN: Record<string, string[]> = {
   irregular: ["irregular", "not regular", "aage peeche", "late", "delayed", "miss", "missed", "kabhi kabhi", "aniyamit", "gadbad", "problem", "upar neeche"],
   menopausal: ["menopause", "menopausal", "band ho gaye", "band", "ruk gaye", "stopped", "bandh", "khatam"],
   pregnant: ["pregnant", "pregnancy", "expecting", "garbhvati", "garbhavati", "pet se", "umeed se"],
-  postpartum: ["postpartum", "delivery", "delivered", "after delivery", "gave birth", "baby hua", "baccha hua", "bachha", "baby", "born", "janm", "nursing", "breastfeeding", "doodh"],
+  postpartum: ["postpartum", "delivery", "delivered", "after delivery", "gave birth", "baby hua", "baccha hua", "bachha hua", "born", "janm", "nursing", "breastfeeding", "doodh pilati"],
   "crash-diet": ["diet", "dieting", "crash diet", "weight loss", "wazan", "vajan", "weight kam", "patla", "dubla", "fasting", "weight"],
   stress: ["stress", "tension", "tanav", "tanaav", "anxiety", "depression", "trauma", "sadma", "pareshan", "chinta", "emotional", "pareshani"],
   fever: ["fever", "bukhar", "bukhaar", "covid", "corona", "dengue", "typhoid", "malaria", "viral", "illness", "bimari", "bimaar", "beemar", "bimar"],
@@ -69,12 +72,12 @@ const SYN: Record<string, string[]> = {
   topical_minoxidil: ["minoxidil", "topical", "lagane wala", "lagaya", "lagata", "lagati", "foam", "solution", "liquid", "spray", "lotion", "rogaine", "tugain", "mintop", "morr"],
   oral_minoxidil: ["oral", "tablet", "goli", "tablets", "dawai", "dawa", "medicine", "khaane wala", "khane wala", "pill", "capsule", "finasteride", "khata", "khati"],
   supplements: ["supplement", "supplements", "biotin", "vitamin", "vitamins", "multivitamin", "zinc", "iron tablet", "protein", "gummies"],
-  prp: ["prp", "gfc", "iprf", "plasma", "injection", "injections", "sui", "platelet"],
+  prp: ["prp", "gfc", "iprf", "plasma", "injection", "injections", "platelet"],
   stem_cells: ["stem", "stem cell", "stem cells", "exosome", "exosomes"],
   transplant: ["transplant", "hair transplant", "implant", "graft", "grafts", "fue", "fut"],
   other: ["other", "kuch aur", "something else", "laser", "microneedling", "derma roller", "mesotherapy", "meso", "qr678", "peptide"],
   saliva: ["saliva", "spit", "thook", "thuk", "laar", "lar", "swab", "mouth", "muh"],
-  blood: ["blood", "khoon", "khun", "rakt", "needle", "sui"],
+  blood: ["blood", "khoon", "khun", "rakt", "needle"],
   either: ["either", "any", "koi bhi", "both", "dono", "kuch bhi", "whichever", "jo bhi", "chalega", "koi bhi chalega"],
 };
 
@@ -86,7 +89,7 @@ const NUM_WORDS: Record<string, number> = {
   tees: 30, ikattis: 31, battis: 32, taintis: 33, chauntis: 34, paintis: 35, paintees: 35, chhattis: 36, saintis: 37, adtis: 38, untalis: 39,
   chalis: 40, chalees: 40, iktalis: 41, bayalis: 42, taintalis: 43, chauvalis: 44, paintalis: 45, chhiyalis: 46, saintalis: 47, adtalis: 48, unchas: 49,
   pachas: 50, pachaas: 50, ikyavan: 51, bavan: 52, tirpan: 53, chauvan: 54, pachpan: 55, chhappan: 56, sattavan: 57, atthavan: 58, unsath: 59,
-  saath: 60, sath: 60, sattar: 70, assi: 80, nabbe: 90,
+  sattar: 70, assi: 80, nabbe: 90, // "saath" (60) is also "with" — left out on purpose
 };
 const ONES: Record<string, number> = {
   one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9,
@@ -158,30 +161,43 @@ export function parseRules(step: Step, raw: string, prev?: AnswerValue): RuleRes
   const toks = new Set(text.split(" "));
   const q = step.q;
 
+  const negated = NO.some((w) => has(text, toks, w));
+
   switch (step.kind) {
     case "number": {
       const n = parseNumber(text);
-      return n == null ? none : { value: n, confident: true };
+      const r = q.number!;
+      return n == null || n < r.min || n > r.max ? none : { value: n, confident: true };
     }
     case "yesno": {
       const v = yesNo(text, toks);
       return v ? { value: v, confident: true } : none;
     }
     case "single": {
-      const h = hits(q.options!, text, toks);
-      return h.length === 1 ? { value: h[0], confident: true } : none;
+      let h = hits(q.options!, text, toks);
+      // "6 mahine se kam" hits both duration chips — "kam"/"less" settles it.
+      if (h.includes("under-6m") && h.includes("6-12m") && ["kam", "less", "under"].some((w) => toks.has(w))) h = ["under-6m"];
+      if (h.length !== 1) return none;
+      // "band nahi hue" (haven't stopped) must not read as Menopausal: a negated
+      // single answer goes to the LLM — unless the option itself is "Not applicable".
+      if (negated && h[0] !== "na") return none;
+      return { value: h[0], confident: true };
     }
     case "multi": {
       const h = hits(q.options!, text, toks);
       const ex = h.find((v) => q.options!.find((o) => o.value === v)?.exclusive);
-      const value = ex ? [ex] : h;
-      return value.length ? { value, confident: false } : none;
+      // Speaking adds to what was already tapped ("mother bhi").
+      const prevArr = Array.isArray(prev) ? (prev as string[]).filter((v) => !q.options!.find((o) => o.value === v)?.exclusive) : [];
+      const value = ex ? [ex] : [...new Set([...prevArr, ...h])];
+      return h.length ? { value, confident: false } : none;
     }
     case "picker": {
       const rowOpts: Option[] = q.rows!.map((r) => ({ value: r.id, label: r.label }));
       const noneHit = SYN.none.some((w) => has(text, toks, w)) || yesNo(text, toks) === "no";
       const h = hits(rowOpts, text, toks);
-      if (h.length) return { value: pickerValue(q, h, prev as Record<string, RowAnswer> | undefined), confident: false };
+      const prevRows = prev as Record<string, RowAnswer> | undefined;
+      const already = q.rows!.filter((r) => prevRows?.[r.id]?.[q.gate!.id] === "yes").map((r) => r.id);
+      if (h.length) return { value: pickerValue(q, [...new Set([...already, ...h])], prevRows), confident: false };
       if (noneHit) return { value: pickerValue(q, []), confident: false };
       return none;
     }

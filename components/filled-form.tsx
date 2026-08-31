@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Intake } from "@/lib/use-intake";
 import { STR } from "@/lib/strings";
 import { Lang, SECTIONS, SHORT, Section, tx } from "@/lib/intake-schema";
@@ -19,13 +19,16 @@ export function FilledForm({ intake }: { intake: Intake }) {
   const rows = useMemo(() => buildFilledForm(answers, lang), [answers, lang]);
   const blanks = rows.filter((r) => !r.answered).length;
   const json = useMemo(() => JSON.stringify(toSchemaJson(answers, lang), null, 2), [answers, lang]);
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "selected">("idle");
+  const h1 = useRef<HTMLHeadingElement>(null);
+  useEffect(() => h1.current?.focus(), []);
 
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(json);
+      setCopyState("copied");
     } catch {
-      // No clipboard (older iOS in-app browsers): select the text instead.
+      // No clipboard (insecure context / older in-app browsers): select the text instead.
       const pre = document.getElementById("json-pre");
       if (pre) {
         const range = document.createRange();
@@ -34,9 +37,9 @@ export function FilledForm({ intake }: { intake: Intake }) {
         sel?.removeAllRanges();
         sel?.addRange(range);
       }
+      setCopyState("selected");
     }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    setTimeout(() => setCopyState("idle"), 2500);
   };
 
   const column = (secs: Section[]) =>
@@ -50,8 +53,8 @@ export function FilledForm({ intake }: { intake: Intake }) {
       <header className="mt-4">
         <p className="eyebrow">{s.reviewEyebrow}</p>
         <h1
+          ref={h1}
           tabIndex={-1}
-          autoFocus
           className="mt-2 font-display text-[32px] font-light leading-tight tracking-[-0.01em] outline-none md:text-4xl"
         >
           {s.reviewTitle}
@@ -68,7 +71,7 @@ export function FilledForm({ intake }: { intake: Intake }) {
         <summary className="cursor-pointer px-5 py-4 text-base font-medium">{s.jsonSummary}</summary>
         <div className="border-t border-black/5 px-5 py-3">
           <button className="pill" onClick={copy}>
-            <span aria-live="polite">{copied ? s.copied : s.copy}</span>
+            <span aria-live="polite">{copyState === "copied" ? s.copied : copyState === "selected" ? s.selected : s.copy}</span>
           </button>
           <pre id="json-pre" className="mt-3 overflow-x-auto text-xs leading-relaxed text-ink/80">
             {json}

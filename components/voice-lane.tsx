@@ -20,7 +20,8 @@ export function MicButton({
 }) {
   const s = STR[lang];
   const voice = useVoice(onTranscript);
-  if (voice.available === false) return null;
+  // Nothing until we know the mic can actually work — no flash of a control that then vanishes.
+  if (voice.available !== true) return null;
   const busy = voice.status === "transcribing";
   const rec = voice.status === "recording";
   const label = rec ? `${s.listening} · 0:${String(voice.seconds).padStart(2, "0")}` : busy ? s.transcribing : compact ? s.dictate : s.speak;
@@ -34,7 +35,7 @@ export function MicButton({
         aria-pressed={rec}
         title={label}
         onClick={onClick}
-        disabled={voice.available === null || busy}
+        disabled={busy}
         className={`flex h-11 w-11 items-center justify-center rounded-full transition ${
           rec ? "animate-pulse bg-ink text-white" : busy ? "bg-black/10 text-ink/40" : "bg-black/5 text-ink/70 hover:bg-black/10"
         }`}
@@ -50,7 +51,7 @@ export function MicButton({
           type="button"
           aria-pressed={rec}
           onClick={onClick}
-          disabled={voice.available === null || busy}
+          disabled={busy}
           className={`pill ${rec ? "animate-pulse border-ink bg-ink text-white" : busy ? "text-ink/50" : ""}`}
         >
           <Icon name="mic" width={18} height={18} />
