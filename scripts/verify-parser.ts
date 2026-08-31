@@ -23,12 +23,17 @@ const T: [string, string, Expected][] = [
   ["age_hair_loss_began", "chalis ke aas paas", 40],
   ["age_hair_loss_began", "when I was forty five", 45],
   ["age_hair_loss_began", "18 saal", 18],
+  ["age_hair_loss_began", "chhabbis saal", 26],
+  ["age_hair_loss_began", "chabbis", 26],
   ["age_hair_loss_began", "95 saal", null],
   ["age_hair_loss_began", "pata nahi", null],
   ["age_hair_loss_began", "bahut pehle", null],
 
   // Q2 — duration: Under 6 months · 6 to 12 months · Over a year
   ["duration", "kuch mahine se", "under-6m"],
+  ["duration", "Kuchh mahine se", "under-6m"], // Sarvam spelling
+  ["duration", "chhe mahine se kam", "under-6m"],
+  ["duration", "che mahine", "6-12m"],
   ["duration", "teen mahine", "under-6m"],
   ["duration", "two months", "under-6m"],
   ["duration", "6 mahine se kam", "under-6m"],
@@ -116,6 +121,7 @@ const T: [string, string, Expected][] = [
 
   // Q4 — pattern: Receding · Crown · Part · Diffuse · Patchy · Shedding
   ["pattern", "maathe se", ["receding"]],
+  ["pattern", "Mathhe se", ["receding"]], // Sarvam spelling
   ["pattern", "hairline peeche ja rahi hai", ["receding"]],
   ["pattern", "front se", ["receding"]],
   ["pattern", "temples", ["receding"]],
@@ -168,6 +174,7 @@ const T: [string, string, Expected][] = [
   ["diagnosed_conditions", "low iron", ["anemia"]],
   ["diagnosed_conditions", "5", ["anemia"]],
   ["diagnosed_conditions", "kuch nahi", ["none"]],
+  ["diagnosed_conditions", "Kuchh nahi.", ["none"]], // Sarvam spelling
   ["diagnosed_conditions", "none", ["none"]],
   ["diagnosed_conditions", "koi bimari nahi", ["none"]],
   ["diagnosed_conditions", "nahi", ["none"]],
@@ -274,6 +281,7 @@ const T: [string, string, Expected][] = [
   ["past_6_months", "shifted", ["location"]],
   ["past_6_months", "5", ["location"]],
   ["past_6_months", "kuch nahi", ["none"]],
+  ["past_6_months", "Kuchh nahi.", ["none"]],
   ["past_6_months", "nothing", ["none"]],
   ["past_6_months", "none of these", ["none"]],
   ["past_6_months", "nahi", ["none"]],

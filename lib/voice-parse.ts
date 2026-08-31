@@ -15,12 +15,21 @@ export interface RuleResult {
   final?: boolean;
 }
 
+// Sarvam romanizes "कुछ" as "kuchh" and "माथे" as "mathhe"; patients type "kuch".
+// Fold the doubled-h spellings on both sides so one synonym covers every spelling.
+const fold = (s: string) => s.replace(/chh/g, "ch").replace(/thh/g, "th");
+const foldKeys = (o: Record<string, number>) => {
+  for (const k of Object.keys(o)) if (fold(k) !== k) o[fold(k)] = o[k];
+};
+
 export function normalize(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return fold(
+    s
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}\s]/gu, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+  );
 }
 
 const STOP = new Set(
@@ -163,7 +172,10 @@ export function parseNumber(text: string): number | null {
   return null;
 }
 
-const has = (text: string, toks: Set<string>, w: string) => (w.includes(" ") ? ` ${text} `.includes(` ${w} `) : toks.has(w));
+const has = (text: string, toks: Set<string>, raw: string) => {
+  const w = fold(raw);
+  return w.includes(" ") ? ` ${text} `.includes(` ${w} `) : toks.has(w);
+};
 
 /** Words that identify one option: its own label words (unique among the set) + synonyms. */
 function wordsFor(opts: Option[]): Map<string, string[]> {
@@ -268,6 +280,8 @@ export function pickerValue(q: Question, ids: string[], prev?: Record<string, Ro
   for (const r of q.rows!) next[r.id] = ids.includes(r.id) ? { ...(prev?.[r.id] ?? {}), [gate]: "yes" } : { [gate]: "no" };
   return next;
 }
+
+for (const o of [NUM_WORDS, ONES, ORD, FRAC]) foldKeys(o);
 
 export function parseRules(step: Step, raw: string, prev?: AnswerValue): RuleResult {
   const text = normalize(raw);
