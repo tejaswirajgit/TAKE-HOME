@@ -42,11 +42,14 @@ export const micAvailable = () => sessionAvailable;
 // One recorder at a time across every MicButton on the page (pill + dictation).
 let active = false;
 
+// Ask the browser for its own noise suppression / gain control — the waiting room is loud.
+const MIC: MediaStreamConstraints = { audio: { noiseSuppression: true, echoCancellation: true, autoGainControl: true } };
+
 /** Ask for the mic inside the tap that turns Voice mode on, so the hands-free
  *  starts that follow need no gesture (and the permission prompt shows now). */
 export function primeMic() {
   navigator.mediaDevices
-    ?.getUserMedia({ audio: true })
+    ?.getUserMedia(MIC)
     .then((s) => s.getTracks().forEach((t) => t.stop()))
     .catch(() => {});
 }
@@ -135,7 +138,12 @@ export function useVoice(onTranscript: (text: string) => void): Voice {
       const buf = new Uint8Array(an.fftSize);
       let spoke = 0;
       let quietSince = Date.now();
+      // Calibrate on the first 300 ms (a waiting room is never silent): the floor is the
+      // room, speech must clear 2.5x the room for two frames in a row. Without this,
+      // steady noise counted as "speech" and the mic closed before the patient began.
+      const calib: number[] = [];
       let noise = 0.01;
+      let loud = 0;
       const tick = () => {
         if (r.state !== "recording") {
           ctx?.close().catch(() => {});
@@ -146,10 +154,23 @@ export function useVoice(onTranscript: (text: string) => void): Voice {
         for (const v of buf) sum += ((v - 128) / 128) ** 2;
         const rms = Math.sqrt(sum / buf.length);
         const now = Date.now();
-        if (rms > Math.max(0.02, noise * 3)) {
-          spoke ||= now;
+        if (calib.length < 3) {
+          calib.push(rms);
+          if (calib.length === 3) noise = Math.max(0.01, calib.reduce((a, b) => a + b, 0) / 3);
           quietSince = now;
-        } else noise = noise * 0.95 + rms * 0.05;
+          window.setTimeout(tick, 100);
+          return;
+        }
+        if (rms > Math.max(0.02, noise * 2.5)) {
+          loud += 1;
+          if (loud >= 2) {
+            spoke ||= now;
+            quietSince = now;
+          }
+        } else {
+          loud = 0;
+          noise = noise * 0.97 + rms * 0.03; // the room can change; follow it slowly
+        }
         if (spoke && now - quietSince > 1200) r.stop();
         else if (!spoke && now - startedAt.current > 5000) {
           silent.current = true; // nothing was said — do not send 5 s of room noise to be transcribed
@@ -174,7 +195,7 @@ export function useVoice(onTranscript: (text: string) => void): Voice {
       chunks.current = [];
       // getUserMedia must be the first call in the tap handler (iOS gesture rule).
       navigator.mediaDevices
-        .getUserMedia({ audio: true })
+        .getUserMedia(MIC)
         .then((stream) => {
           if (cancelled.current) {
             stream.getTracks().forEach((tr) => tr.stop());
