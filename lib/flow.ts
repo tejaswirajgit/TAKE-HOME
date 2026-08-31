@@ -367,6 +367,26 @@ export function valueLabel(step: Step, value: AnswerValue, lang: Lang): string {
 const speakOptions = (opts: Option[], lang: Lang) =>
   (lang === "hi" ? "विकल्प: " : "Options: ") + opts.map((o, i) => `${i + 1}, ${optLabel(o, lang)}`).join(". ") + ".";
 
+/** The options the way they are read out, numbered — the same numbers the parser accepts ("option 2"). */
+export function optionsSpeech(step: Step, lang: Lang): string {
+  const q = step.q;
+  switch (step.kind) {
+    case "single":
+    case "multi":
+      return speakOptions(q.options!, lang);
+    case "yesno":
+    case "yesno-text":
+      return speakOptions(YESNO_OPTIONS, lang);
+    case "picker":
+      return speakOptions(
+        [...q.rows!.map((r) => ({ value: r.id, label: r.label, hi: r.hi })), { value: "none", label: "None of these", hi: "इनमें से कुछ नहीं" }],
+        lang
+      );
+    default:
+      return "";
+  }
+}
+
 export function speakText(step: Step, a: Answers, lang: Lang): string {
   const q = step.q;
   const L = (en: string, hi?: string) => tx(lang, en, hi);
@@ -379,30 +399,7 @@ export function speakText(step: Step, a: Answers, lang: Lang): string {
   parts.push(L(q.prompt, q.hi?.prompt));
   if (q.body) parts.push(bodyText(q, a, lang));
   if (q.hint) parts.push(L(q.hint, q.hi?.hint));
-  switch (step.kind) {
-    case "single":
-    case "multi":
-      parts.push(speakOptions(q.options!, lang));
-      break;
-    case "yesno":
-    case "yesno-text":
-      parts.push(speakOptions(YESNO_OPTIONS, lang));
-      break;
-    case "picker":
-      parts.push(
-        speakOptions(
-          [...q.rows!.map((r) => ({ value: r.id, label: r.label, hi: r.hi })), { value: "none", label: "None of these", hi: "इनमें से कुछ नहीं" }],
-          lang
-        )
-      );
-      break;
-    case "habits":
-      for (const r of q.habits!)
-        parts.push(`${L(r.label, r.hi)} ${speakOptions(r.kind === "yesno" ? YESNO_OPTIONS : r.options!, lang)}`);
-      break;
-    case "number":
-      parts.push(lang === "hi" ? "एक संख्या बोलें या लिखें।" : "Say or type a number.");
-      break;
-  }
+  const o = optionsSpeech(step, lang);
+  if (o) parts.push(o);
   return parts.join(" ");
 }

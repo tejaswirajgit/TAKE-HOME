@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "verify": "tsx scripts/verify-fill.ts"
+    "verify": "tsx scripts/verify-fill.ts && tsx scripts/verify-parser.ts"
   },
   "dependencies": {
     "next": "15.5.24",

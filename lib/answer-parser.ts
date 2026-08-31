@@ -31,7 +31,8 @@ function llmOptions(step: Step): Option[] | null {
 
 export async function parseAnswer(step: Step, transcript: string, prev?: AnswerValue, signal?: AbortSignal): Promise<Parsed> {
   const r = parseRules(step, transcript, prev);
-  if (r.value != null) return { ...r, source: "rules" };
+  if (r.value != null) return { value: r.value, confident: r.confident, source: "rules" };
+  if (r.final) return NONE; // the rules are sure there is nothing to pick — no guessing
 
   const options = llmOptions(step);
   if (!options) return NONE;
@@ -44,8 +45,12 @@ export async function parseAnswer(step: Step, transcript: string, prev?: AnswerV
       signal,
     });
     if (!res.ok) return NONE;
-    const { values, confidence } = (await res.json()) as { values?: string[]; confidence?: string };
-    if (!values?.length) return NONE;
+    const j = (await res.json()) as { values?: string[]; confidence?: string };
+    let values = j.values ?? [];
+    const confidence = j.confidence;
+    // "diabetes" and "none" together is a contradiction — keep the named ones.
+    if (values.length > 1) values = values.filter((v) => !step.q.options?.find((o) => o.value === v)?.exclusive);
+    if (!values.length) return NONE;
     const multiLike = step.kind === "multi" || step.kind === "picker";
     const value: AnswerValue =
       step.kind === "picker" ? pickerValue(step.q, values, prev as Record<string, RowAnswer> | undefined) : multiLike ? values : values[0];

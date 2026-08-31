@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Intake } from "@/lib/use-intake";
 import { STR } from "@/lib/strings";
 import { AnswerValue, Detail, SECTIONS, TOTAL, tx } from "@/lib/intake-schema";
-import { Suggestion, bodyText, habitDone, isAnswered, speakText, suggest, valueLabel } from "@/lib/flow";
+import { Suggestion, bodyText, habitDone, isAnswered, optionsSpeech, speakText, suggest, valueLabel } from "@/lib/flow";
 import { parseAnswer } from "@/lib/answer-parser";
 import { spokenYesNo } from "@/lib/voice-parse";
 import { useSpeech } from "@/lib/use-speech";
@@ -112,7 +112,13 @@ export function QuestionScreen({ intake }: { intake: Intake }) {
       if (readAloud) {
         const ok = r.value != null;
         retries.current = ok ? 0 : retries.current + 1;
-        const line = r.value != null ? `${s.heard}: ${valueLabel(step, r.value, lang)}. ${s.sayYes}` : s.tryAgainVoice;
+        // A miss ("uncle" on the family question) reads the options back with their numbers.
+        const line =
+          r.value != null
+            ? `${s.heard}: ${valueLabel(step, r.value, lang)}. ${s.sayYes}`
+            : step.kind === "number"
+              ? s.tryAgainVoice
+              : `${s.notAnOption} ${optionsSpeech(step, lang)}`;
         // After two misses, stop re-opening the mic by itself; the pill and the chips are still there.
         speech.speak(line, lang).then((done) => done && (ok || retries.current < 3) && listenNext());
       }
