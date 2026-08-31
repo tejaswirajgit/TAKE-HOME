@@ -95,6 +95,7 @@ export async function speak(text: string, lang: "en" | "hi", signal?: AbortSigna
       text: text.slice(0, 1500),
       language_code: lang === "hi" ? "hi-IN" : "en-IN",
       model: "bulbul:v3",
+      speaker: "shubh", // pinned: one voice for the whole visit, in both languages
       speech_sample_rate: 22050,
     }),
     signal,

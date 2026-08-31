@@ -42,7 +42,7 @@ Radio/checkbox semantics on every chip, focus moves to each new question, live r
 | Framework | Next.js 15 · React 19 · Tailwind · TypeScript | One static page + three tiny serverless routes; zero-config Vercel deploy. |
 | Speech → text | **Sarvam AI `saaras:v3`**, `mode: translit` | Built for Indian languages and Hinglish. `translit` returns romanized text ("pachees saal") so the free rule parser can read it. |
 | Text → answer | **Rules first** (`lib/voice-parse.ts`), then **Sarvam `sarvam-105b-conversations`** with `json_schema` output (`/api/parse`) | Most utterances resolve offline for free with token-matched Hinglish synonyms ("papa aur bhai" → father, siblings). The LLM is called only when rules give up, and is constrained to the question's own option values — it cannot invent. |
-| Text → speech | **Sarvam `bulbul:v3`** with browser `speechSynthesis` fallback | Natural Hindi/English voices; falls back to the device voice if the route is slow. |
+| Text → speech | **Sarvam `bulbul:v3`** with browser `speechSynthesis` fallback | Natural Hindi/English voices; falls back to the device voice if the route is slow. Pinned to one speaker (`shubh`) so the voice never changes between questions or languages; the browser voice is only a fallback after 9 s. |
 | Persistence | `localStorage` | On-device, no account, nothing leaves the browser. |
 | Vendor seam | `lib/voice.ts` is the only file that knows Sarvam | Swap STT/LLM/TTS by editing one file; the UI never sees a key. |
 

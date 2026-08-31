@@ -96,7 +96,8 @@ export function useSpeech(enabled: boolean) {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ text, lang }),
-                signal: AbortSignal.timeout(4000),
+                // Generous: a cold serverless start must not swap in the browser voice mid-visit.
+            signal: AbortSignal.timeout(9000),
               });
               if (!res.ok) throw new Error(String(res.status));
               url = URL.createObjectURL(await res.blob());
