@@ -17,11 +17,14 @@ export function MicButton({
   onTranscript,
   compact,
   listen = 0,
+  explain,
 }: {
   lang: Lang;
   onTranscript: (text: string) => void;
   compact?: boolean;
   listen?: number;
+  /** Voice mode: say on screen why the mic is missing instead of vanishing silently */
+  explain?: boolean;
 }) {
   const s = STR[lang];
   const voice = useVoice(onTranscript);
@@ -31,7 +34,12 @@ export function MicButton({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listen, available]);
   // Nothing until we know the mic can actually work — no flash of a control that then vanishes.
-  if (voice.available !== true) return null;
+  if (voice.available !== true)
+    return explain && voice.available === false && !compact ? (
+      <p role="status" className="mt-4 text-sm text-ink/60">
+        {s.micUnavailable}
+      </p>
+    ) : null;
   const busy = voice.status === "transcribing";
   const rec = voice.status === "recording";
   const label = rec ? `${s.listening} · 0:${String(voice.seconds).padStart(2, "0")}` : busy ? s.transcribing : compact ? s.dictate : s.speak;
@@ -71,7 +79,7 @@ export function MicButton({
       </div>
       {voice.problem && (
         <p role="status" className="mt-2 text-sm text-ink/60">
-          {s.tryAgain}
+          {voice.problem === "blocked" ? s.micBlocked : s.tryAgain}
         </p>
       )}
     </div>

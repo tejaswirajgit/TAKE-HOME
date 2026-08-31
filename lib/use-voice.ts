@@ -4,8 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 // Tap to record, tap to stop; the clip goes to /api/stt and the transcript
 // comes back to the caller. The mic hides itself only when it truly cannot
-// work (no permission, no recorder, no key) or after two server failures —
-// one slow call must never take voice away for the whole visit.
+// work here (no microphone, no recorder, no key, insecure page). A blocked
+// permission or a failed call is shown with the way out and simply retried —
+// one bad call must never take voice away for the whole visit.
 // Hands-free (Voice mode): the recorder opens on its own after the question
 // is read and closes itself after ~1.2 s of silence, so nobody has to tap.
 
@@ -16,8 +17,8 @@ export interface Voice {
   available: boolean | null;
   status: VoiceStatus;
   seconds: number;
-  /** a one-line problem to show once ("didn't catch that") */
-  problem: "short" | "failed" | null;
+  /** a one-line problem to show once ("didn't catch that", "mic is blocked") */
+  problem: "short" | "failed" | "blocked" | null;
   start: (opts?: { handsFree?: boolean }) => void;
   stop: () => void;
   cancel: () => void;
@@ -36,7 +37,8 @@ const checkHealth = () => {
   return healthPromise;
 };
 let sessionAvailable: boolean | null = null;
-let failures = 0;
+/** What the session knows about the mic: null = not checked yet, false = cannot work here. */
+export const micAvailable = () => sessionAvailable;
 // One recorder at a time across every MicButton on the page (pill + dictation).
 let active = false;
 
@@ -108,17 +110,13 @@ export function useVoice(onTranscript: (text: string) => void): Voice {
       const res = await fetch("/api/stt", { method: "POST", body: fd, signal: ac.signal });
       if (!res.ok) throw new Error(String(res.status));
       const { transcript } = (await res.json()) as { transcript?: string };
-      failures = 0;
       if (!cancelled.current) {
         if (transcript) cb.current(transcript);
         else setProblem("short");
       }
     } catch {
-      if (!cancelled.current) {
-        failures += 1;
-        if (failures >= 2) disable();
-        else setProblem("failed");
-      }
+      // A failed call is shown, never punished: the mic stays for the next try.
+      if (!cancelled.current) setProblem("failed");
     } finally {
       window.clearTimeout(t);
       abort.current = null;
@@ -227,7 +225,10 @@ export function useVoice(onTranscript: (text: string) => void): Voice {
         })
         .catch((err: DOMException) => {
           active = false;
-          if (err?.name === "NotAllowedError" || err?.name === "NotFoundError" || err?.name === "SecurityError") disable();
+          // Blocked permission is shown with the way out (the address-bar icon) and retried next
+          // time; only a missing microphone hides the mic for the session.
+          if (err?.name === "NotAllowedError") setProblem("blocked");
+          else if (err?.name === "NotFoundError" || err?.name === "SecurityError") disable();
           else setProblem("failed");
         });
     },

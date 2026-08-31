@@ -8,6 +8,7 @@ import { Suggestion, bodyText, habitDone, isAnswered, speakText, suggest, valueL
 import { parseAnswer } from "@/lib/answer-parser";
 import { spokenYesNo } from "@/lib/voice-parse";
 import { useSpeech } from "@/lib/use-speech";
+import { micAvailable } from "@/lib/use-voice";
 import { IntakeFrame, ProgressBar, SectionBadge, StickyNext } from "./intake-shell";
 import { TopBar } from "./top-bar";
 import { QuestionInput } from "./question-input";
@@ -79,7 +80,9 @@ export function QuestionScreen({ intake }: { intake: Intake }) {
   // Read-aloud: the question (and any pre-filled reason) on every step; then listen.
   useEffect(() => {
     if (!readAloud) return;
-    const extra = stored === undefined && inferred ? ` ${tx(lang, inferred.reason, inferred.hi)}` : "";
+    let extra = stored === undefined && inferred ? ` ${tx(lang, inferred.reason, inferred.hi)}` : "";
+    // A blind patient must *hear* that the mic cannot work here, not just see it.
+    if (handsFree && micAvailable() === false) extra += ` ${s.micUnavailable}`;
     speech.speak(speakText(step, answers, lang) + extra, lang).then((done) => done && listenNext());
     return () => speech.stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -228,7 +231,7 @@ export function QuestionScreen({ intake }: { intake: Intake }) {
         {hint && <p className="mt-2.5 text-ink/60">{hint}</p>}
         {body && <p className="mt-3 text-lg leading-relaxed text-ink/80">{body}</p>}
 
-        {showMic && <MicButton lang={lang} onTranscript={onTranscript} listen={listen.id === step.id ? listen.n : 0} />}
+        {showMic && <MicButton lang={lang} onTranscript={onTranscript} listen={listen.id === step.id ? listen.n : 0} explain={readAloud} />}
 
         {suggestion && (
           <p role="status" className="mt-3 rounded-xl bg-black/[0.04] px-3 py-2 text-sm text-ink/70">
