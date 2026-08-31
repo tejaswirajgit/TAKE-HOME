@@ -199,8 +199,8 @@ export const QUESTIONS: Question[] = [
     id: "pregnancy_related",
     section: "B",
     kind: "single",
-    prompt: "Anything pregnancy-related right now?",
-    hi: { prompt: "अभी गर्भावस्था से जुड़ा कुछ?" },
+    prompt: "Is the hair loss pregnancy-related?",
+    hi: { prompt: "क्या बालों का झड़ना गर्भावस्था से जुड़ा है?" },
     options: [
       { value: "pregnant", label: "Currently pregnant", hi: "अभी गर्भवती हूँ" },
       { value: "postpartum", label: "Postpartum, under 1 year", hi: "डिलीवरी को एक साल से कम", out: "Postpartum <1 year" },
@@ -404,10 +404,10 @@ export const QUESTIONS: Question[] = [
     kind: "yesno",
     autoAdvance: false,
     prompt: "One last thing — your consent.",
-    body: "The clinic will collect your {sample} sample and run a genetic analysis on it, used only to understand your hair loss and plan your treatment. Do you consent to the sample collection and genetic analysis?",
+    body: "The clinic will collect your {sample} sample and run a genetic analysis on it. Do you consent to the sample collection and genetic analysis?",
     hi: {
       prompt: "आख़िरी बात — आपकी सहमति।",
-      body: "क्लिनिक आपका {sample} सैंपल लेगा और उस पर जेनेटिक (DNA) जाँच करेगा — सिर्फ़ आपके बालों के झड़ने को समझने और इलाज तय करने के लिए। क्या आप सैंपल लेने और जेनेटिक जाँच के लिए सहमत हैं?",
+      body: "क्लिनिक आपका {sample} सैंपल लेगा और उस पर जेनेटिक (DNA) जाँच करेगा। क्या आप सैंपल लेने और जेनेटिक जाँच के लिए सहमत हैं?",
     },
   },
 ];
