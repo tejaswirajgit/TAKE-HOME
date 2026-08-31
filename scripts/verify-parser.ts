@@ -55,7 +55,26 @@ const T: [string, string, Expected][] = [
   ["duration", "teesra wala", "over-1y"],
   ["duration", "last", "over-1y"],
   ["duration", "pata nahi", null],
-  ["duration", "band nahi hue abhi, do teen saal se chal raha hai", null], // negated → LLM
+  ["duration", "band nahi hue abhi, do teen saal se chal raha hai", "over-1y"], // "teen saal" is arithmetic, not a phrase
+  // number + unit, any spelling
+  ["duration", "15 mahina", "over-1y"],
+  ["duration", "pandrah mahine se", "over-1y"],
+  ["duration", "pandra mahine", "over-1y"],
+  ["duration", "fifteen months", "over-1y"],
+  ["duration", "12 mahine", "6-12m"],
+  ["duration", "6 mahine", "6-12m"],
+  ["duration", "chhe mahine se zyada", "6-12m"],
+  ["duration", "1 saal se kam", "6-12m"],
+  ["duration", "aadha saal", "6-12m"],
+  ["duration", "dedh saal", "over-1y"],
+  ["duration", "sawa saal se", "over-1y"],
+  ["duration", "1.5 years", "over-1y"],
+  ["duration", "3 hafte", "under-6m"],
+  ["duration", "do mahine se", "under-6m"],
+  ["duration", "ek mahina", "under-6m"],
+  ["duration", "20 din se", "under-6m"],
+  ["duration", "5 mahine se", "under-6m"],
+  ["duration", "twenty five saal", "over-1y"],
 
   // Q3 — family: Father · Mother · Siblings · none
   ["family_history", "haan papa ko bhi tha", ["father"]],

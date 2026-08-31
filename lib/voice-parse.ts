@@ -46,7 +46,7 @@ const OFF: Record<string, string[]> = {
 
 /** Spoken synonyms per option value (label words are matched automatically). */
 const SYN: Record<string, string[]> = {
-  "under-6m": ["few months", "kuch mahine", "couple of months", "recently", "abhi abhi", "teen mahine", "do mahine", "char mahine", "paanch mahine", "less than six", "6 se kam", "chhe se kam", "kuch hafte", "weeks", "mahine se kam", "6 mahine se kam", "chhe mahine se kam", "six months se kam", "under six", "one month", "two months", "three months", "four months", "five months", "ek mahina", "ek mahine", "month", "mahina"],
+  "under-6m": ["few months", "kuch mahine", "couple of months", "recently", "abhi abhi", "teen mahine", "do mahine", "char mahine", "paanch mahine", "less than six", "6 se kam", "chhe se kam", "kuch hafte", "weeks", "mahine se kam", "6 mahine se kam", "chhe mahine se kam", "six months se kam", "under six", "one month", "two months", "three months", "four months", "five months", "ek mahina", "ek mahine"],
   "6-12m": ["six months", "chhe mahine", "6 mahine", "aath mahine", "das mahine", "half year", "six to twelve", "saal se kam", "almost a year", "ek saal hone wala", "8 mahine", "9 mahine", "10 mahine", "11 mahine", "7 mahine", "saat mahine", "sat mahine", "nau mahine", "gyarah mahine", "seven months", "eight months", "nine months", "ten months", "eleven months", "7 months", "8 months", "9 months", "10 months", "11 months"],
   "over-1y": ["year", "years", "saal", "saalon", "sal", "long time", "kaafi time", "bahut time", "barso", "over a year", "more than a year", "ek saal se zyada", "do saal", "teen saal", "kai saal"],
   father: ["father", "dad", "papa", "pitaji", "pita", "daddy", "abbu", "baba"],
@@ -105,11 +105,48 @@ const NUM_WORDS: Record<string, number> = {
   chalis: 40, chalees: 40, iktalis: 41, bayalis: 42, taintalis: 43, chauvalis: 44, paintalis: 45, chhiyalis: 46, saintalis: 47, adtalis: 48, unchas: 49,
   pachas: 50, pachaas: 50, ikyavan: 51, bavan: 52, tirpan: 53, chauvan: 54, pachpan: 55, chhappan: 56, sattavan: 57, atthavan: 58, unsath: 59,
   sattar: 70, assi: 80, nabbe: 90, // "saath" (60) is also "with" — left out on purpose
+  bara: 12, tera: 13, chauda: 14, pandra: 15, sola: 16, satra: 17, athara: 18, unnees: 19, pachchees: 25,
 };
 const ONES: Record<string, number> = {
   one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9,
   ek: 1, do: 2, teen: 3, char: 4, chaar: 4, paanch: 5, panch: 5, chhe: 6, che: 6, saat: 7, aath: 8, nau: 9,
 };
+
+// "15 mahina", "dedh saal", "3 hafte", "1 saal se kam" — a number and a unit beat any phrase list.
+const FRAC: Record<string, number> = { aadha: 0.5, adha: 0.5, dedh: 1.5, derh: 1.5, dhai: 2.5, adhai: 2.5, sava: 1.25, sawa: 1.25 };
+const UNIT: Record<string, "day" | "week" | "month" | "year"> = {
+  din: "day", dino: "day", dinon: "day", day: "day", days: "day",
+  hafta: "week", hafte: "week", hafton: "week", week: "week", weeks: "week", saptah: "week",
+  mahina: "month", mahine: "month", mahino: "month", mahinon: "month", maheena: "month", maheene: "month", month: "month", months: "month",
+  saal: "year", sal: "year", saalon: "year", salon: "year", year: "year", years: "year", varsh: "year", baras: "year",
+};
+function numberBefore(toks: string[], i: number): number | null {
+  const w = toks[i - 1];
+  if (!w) return null;
+  const w2 = toks[i - 2];
+  if (/^\d+(\.\d+)?$/.test(w)) return parseFloat(w);
+  if (FRAC[w] != null) return FRAC[w];
+  // "twenty five mahine" / "pachees" — English tens take a following ones word.
+  if (ONES[w] != null && w2 && NUM_WORDS[w2] != null && NUM_WORDS[w2] % 10 === 0 && NUM_WORDS[w2] >= 20 && /^[a-z]+$/.test(w2)) return NUM_WORDS[w2] + ONES[w];
+  if (ONES[w] != null) return ONES[w];
+  if (NUM_WORDS[w] != null) return NUM_WORDS[w];
+  return null;
+}
+export function durationByNumber(text: string): "under-6m" | "6-12m" | "over-1y" | null {
+  const toks = text.split(" ");
+  for (let i = 0; i < toks.length; i++) {
+    const unit = UNIT[toks[i]];
+    if (!unit) continue;
+    let n = numberBefore(toks, i);
+    if (n == null) continue;
+    const after = toks.slice(i + 1, i + 4);
+    if (after.some((w) => ["kam", "less", "under", "andar"].includes(w))) n -= 0.5; // "6 mahine se kam"
+    if (after.some((w) => ["zyada", "jyada", "more", "over", "upar", "above", "plus"].includes(w))) n += 0.5; // "1 saal se zyada"
+    const months = unit === "day" ? n / 30 : unit === "week" ? n / 4.3 : unit === "month" ? n : n * 12;
+    return months < 6 ? "under-6m" : months <= 12 ? "6-12m" : "over-1y";
+  }
+  return null;
+}
 
 export function parseNumber(text: string): number | null {
   const digits = text.match(/\b(\d{1,2})\b/);
@@ -281,6 +318,10 @@ export function parseRules(step: Step, raw: string, prev?: AnswerValue): RuleRes
       return v ? { value: v, confident: true } : none;
     }
     case "single": {
+      if (q.id === "duration") {
+        const d = durationByNumber(text);
+        if (d) return { value: d, confident: true };
+      }
       let h = hits(q.options!, text, toks);
       // "6 mahine se kam" hits both duration chips — "kam"/"less" settles it.
       if (h.includes("under-6m") && h.includes("6-12m") && ["kam", "less", "under"].some((w) => toks.has(w))) h = ["under-6m"];
