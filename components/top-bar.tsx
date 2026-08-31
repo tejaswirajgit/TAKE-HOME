@@ -41,7 +41,7 @@ export function TopBar({
               aria-pressed={lang === l}
               onClick={() => setLang(l)}
               className={`min-h-[36px] rounded-full px-3 transition ${
-                lang === l ? "bg-white font-medium text-ink shadow-sm" : "text-ink/50 hover:text-ink"
+                lang === l ? "bg-white font-medium text-ink shadow-sm" : "text-ink/60 hover:text-ink"
               }`}
             >
               {l === "en" ? "EN" : "हिंदी"}

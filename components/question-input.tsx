@@ -339,11 +339,11 @@ function NumberInput({
           +
         </button>
       </div>
-      <p className="text-ink/50">{s.yearsOld}</p>
+      <p className="text-ink/60">{s.yearsOld}</p>
       <p
         id="age-help"
         className={
-          tooLow || tooHigh ? "rounded-lg bg-red-50 px-3 py-1.5 text-sm font-medium text-red-500" : "text-xs text-ink/40"
+          tooLow || tooHigh ? "rounded-lg bg-red-50 px-3 py-1.5 text-sm font-medium text-red-500" : "text-xs text-ink/60"
         }
       >
         {tooLow ? s.tooLow(cfg.min) : tooHigh ? s.tooHigh(cfg.max) : s.ageRange(cfg.min, cfg.max)}
@@ -427,7 +427,7 @@ function HabitsInput({
           <fieldset key={r.id} data-row={r.id} data-missing={!done} className="rounded-2xl border border-black/10 bg-white/60 p-3">
             <legend className="px-1 text-base font-medium">{tx(lang, r.label, r.hi)}</legend>
             {(r.hint || nudge) && (
-              <p className={`mb-2 text-sm ${nudge ? "rounded-lg bg-black/[0.05] px-2 py-1.5 text-ink/80" : "px-1 text-ink/50"}`}>
+              <p className={`mb-2 text-sm ${nudge ? "rounded-lg bg-black/[0.05] px-2 py-1.5 text-ink/80" : "px-1 text-ink/60"}`}>
                 {nudge ? s.waterNudge : tx(lang, r.hint!, r.hiHint)}
               </p>
             )}

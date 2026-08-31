@@ -37,7 +37,7 @@ export function MicButton({
         onClick={onClick}
         disabled={busy}
         className={`flex h-11 w-11 items-center justify-center rounded-full transition ${
-          rec ? "animate-pulse bg-ink text-white" : busy ? "bg-black/10 text-ink/40" : "bg-black/5 text-ink/70 hover:bg-black/10"
+          rec ? "animate-pulse bg-ink text-white" : busy ? "bg-black/10 text-ink/60" : "bg-black/5 text-ink/70 hover:bg-black/10"
         }`}
       >
         <Icon name="mic" width={20} height={20} />
@@ -52,12 +52,12 @@ export function MicButton({
           aria-pressed={rec}
           onClick={onClick}
           disabled={busy}
-          className={`pill ${rec ? "animate-pulse border-ink bg-ink text-white" : busy ? "text-ink/50" : ""}`}
+          className={`pill ${rec ? "animate-pulse border-ink bg-ink text-white" : busy ? "text-ink/60" : ""}`}
         >
           <Icon name="mic" width={18} height={18} />
           <span aria-live="polite">{label}</span>
         </button>
-        <span className="text-sm text-ink/45">{s.orTap}</span>
+        <span className="text-sm text-ink/60">{s.orTap}</span>
       </div>
       {voice.problem && (
         <p role="status" className="mt-2 text-sm text-ink/60">

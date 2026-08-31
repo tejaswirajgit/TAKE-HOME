@@ -47,8 +47,8 @@ export function CompletionScreen({ intake }: { intake: Intake }) {
         <h1 ref={h1} tabIndex={-1} className="mt-3 font-display text-4xl font-light leading-tight tracking-[-0.02em] outline-none">
           {s.doneTitle}
         </h1>
-        <p className="mt-4 text-lg leading-relaxed text-ink/55">{s.doneBody}</p>
-        {nextLine && <p className="mt-2 text-base text-ink/45">{nextLine}</p>}
+        <p className="mt-4 text-lg leading-relaxed text-ink/60">{s.doneBody}</p>
+        {nextLine && <p className="mt-2 text-base text-ink/60">{nextLine}</p>}
 
         <button className="btn-primary mt-9 w-full" onClick={intake.toReview}>
           {s.seeFilled}

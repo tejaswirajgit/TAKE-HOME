@@ -59,7 +59,7 @@ export function FilledForm({ intake }: { intake: Intake }) {
         >
           {s.reviewTitle}
         </h1>
-        <p className="mt-2 text-ink/55">{s.reviewBody}</p>
+        <p className="mt-2 text-ink/60">{s.reviewBody}</p>
       </header>
 
       <div className="mt-6 grid gap-5 lg:grid-cols-2 lg:items-start">
@@ -110,15 +110,16 @@ function SectionCard({
       <dl className="divide-y divide-black/5">
         {rows.map((r) => (
           <div key={r.q.id} className="px-5 py-3">
-            <div className="flex items-start justify-between gap-3">
-              <dt className="text-sm text-ink/60">
-                <span className="font-mono text-xs text-ink/40">{r.n}.</span> {tx(lang, SHORT[r.q.id].en, SHORT[r.q.id].hi)}
+            {/* dl > div > dt + dd is the one nesting screen readers accept */}
+            <dt className="flex items-start justify-between gap-3 text-sm text-ink/70">
+              <span>
+                <span className="font-mono text-xs text-ink/60">{r.n}.</span> {tx(lang, SHORT[r.q.id].en, SHORT[r.q.id].hi)}
                 {r.inferred && (
-                  <span className="ml-2 rounded bg-black/5 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-ink/50">
+                  <span className="ml-2 rounded bg-black/5 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-ink/70">
                     {s.inferredBadge}
                   </span>
                 )}
-              </dt>
+              </span>
               <button
                 className="pill shrink-0 !min-h-[36px] !px-3 !py-1 text-sm"
                 aria-label={s.editQ(r.n)}
@@ -127,8 +128,8 @@ function SectionCard({
                 <Icon name="pencil" width={14} height={14} />
                 {s.edit}
               </button>
-            </div>
-            <dd className={`mt-1 text-base font-medium ${r.answered ? "text-ink" : "text-red-600"}`}>
+            </dt>
+            <dd className={`mt-1 text-base font-medium ${r.answered ? "text-ink" : "text-red-700"}`}>
               {r.lines ? (
                 <ul className="mt-1 space-y-1 text-sm">
                   {r.lines.map((l) => (

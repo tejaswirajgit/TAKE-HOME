@@ -188,7 +188,7 @@ export function QuestionScreen({ intake }: { intake: Intake }) {
           <span className="sr-only">{s.questionOf(q.n, TOTAL)}. </span>
           {title}
         </h1>
-        {hint && <p className="mt-2.5 text-ink/50">{hint}</p>}
+        {hint && <p className="mt-2.5 text-ink/60">{hint}</p>}
         {body && <p className="mt-3 text-lg leading-relaxed text-ink/80">{body}</p>}
 
         {showMic && <MicButton lang={lang} onTranscript={onTranscript} />}

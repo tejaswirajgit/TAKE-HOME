@@ -33,7 +33,7 @@ export function ProgressBar({
           style={{ width: `${Math.round(frac * 100)}%` }}
         />
       </div>
-      <span className="shrink-0 font-mono text-xs tabular-nums text-ink/40" aria-hidden>
+      <span className="shrink-0 font-mono text-xs tabular-nums text-ink/60" aria-hidden>
         {n} / {TOTAL}
         {sub ? ` · ${sub.i}/${sub.of}` : ""}
       </span>

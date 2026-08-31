@@ -53,7 +53,7 @@ export function Welcome({ intake }: { intake: Intake }) {
           </button>
         )}
 
-        <p className="mt-10 text-center text-xs text-ink/30">{s.demo}</p>
+        <p className="mt-10 text-center text-xs text-ink/60">{s.demo}</p>
       </div>
     </IntakeFrame>
   );

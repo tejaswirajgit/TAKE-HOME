@@ -24,7 +24,7 @@ body {
     @apply mx-auto w-full max-w-md md:max-w-xl;
   }
   .eyebrow {
-    @apply font-mono text-[11px] uppercase tracking-eyebrow text-ink/45;
+    @apply font-mono text-[11px] uppercase tracking-eyebrow text-ink/60;
   }
   /* Big, calm tap targets — designed for a 55-year-old on a phone. */
   .choice {
