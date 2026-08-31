@@ -2,7 +2,7 @@
 
 A hair & scalp clinic's 16-question intake, rebuilt so a patient finishes it on a phone in about two minutes — tap or speak, in English or हिंदी — and the doctor gets a complete, structured picture before the consultation starts.
 
-**Live:** _link added at final commit_ · **Verify the fill:** `corepack pnpm verify`
+**Live:** https://haiku-intake-nu.vercel.app · **Verify the fill:** `corepack pnpm verify`
 
 ---
 
@@ -70,7 +70,7 @@ corepack pnpm verify           # the fill check above
 corepack pnpm build
 ```
 
-Deploy: Vercel, one project, env var `SARVAM_API_KEY` (Production + Preview). No real personal data anywhere; all patients are made up.
+Deploy: Vercel, one project imported from this repo (Next.js preset, root `./`, pnpm from the lockfile), env var `SARVAM_API_KEY` for Production + Preview; every push to `main` redeploys. Live at https://haiku-intake-nu.vercel.app — after deploying, the three routes were checked against the live URL: `/api/stt` health, TTS in both languages, a real MediaRecorder webm clip transcribed, and the LLM parse. No real personal data anywhere; all patients are made up.
 
 ## What I'd do with one more week
 - WhatsApp pre-visit link with a signed resume token, so the waiting room becomes a confirm.
