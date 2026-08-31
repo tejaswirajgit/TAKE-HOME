@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { Lang } from "@/lib/intake-schema";
 import { STR } from "@/lib/strings";
 import { useVoice } from "@/lib/use-voice";
+import { beep } from "@/lib/use-speech";
 import { Icon } from "./icons";
 
 // The mic. As a pill under the question ("Speak your answer") or as a small
@@ -30,7 +31,8 @@ export function MicButton({
   const voice = useVoice(onTranscript);
   const { available, start } = voice;
   useEffect(() => {
-    if (listen > 0 && available === true) start({ handsFree: true });
+    // Beep first, open the mic after it has faded — so the beep itself is never recorded.
+    if (listen > 0 && available === true) void beep().then(() => start({ handsFree: true }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listen, available]);
   // Nothing until we know the mic can actually work — no flash of a control that then vanishes.

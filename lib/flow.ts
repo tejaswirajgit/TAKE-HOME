@@ -387,10 +387,12 @@ export function optionsSpeech(step: Step, lang: Lang): string {
   }
 }
 
-export function speakText(step: Step, a: Answers, lang: Lang): string {
+/** What Voice mode reads. `brief` (the hands-free loop) is the question alone — the
+ *  options are read only on a miss or on "Read this again", so each step stays short. */
+export function speakText(step: Step, a: Answers, lang: Lang, brief = false): string {
   const q = step.q;
   const L = (en: string, hi?: string) => tx(lang, en, hi);
-  const parts: string[] = [lang === "hi" ? `सवाल ${q.n}, कुल ${TOTAL} में से।` : `Question ${q.n} of ${TOTAL}.`];
+  const parts: string[] = [brief ? (lang === "hi" ? `सवाल ${q.n}।` : `Question ${q.n}.`) : lang === "hi" ? `सवाल ${q.n}, कुल ${TOTAL} में से।` : `Question ${q.n} of ${TOTAL}.`];
   if (step.kind === "card") {
     parts.push(L(step.row!.label, step.row!.hi) + ".");
     for (const c of q.columns!) parts.push(`${L(c.label, c.hi)} ${speakOptions(c.kind === "yesno" ? YESNO_OPTIONS : c.options!, lang)}`);
@@ -399,7 +401,7 @@ export function speakText(step: Step, a: Answers, lang: Lang): string {
   parts.push(L(q.prompt, q.hi?.prompt));
   if (q.body) parts.push(bodyText(q, a, lang));
   if (q.hint) parts.push(L(q.hint, q.hi?.hint));
-  const o = optionsSpeech(step, lang);
+  const o = brief ? "" : optionsSpeech(step, lang);
   if (o) parts.push(o);
   return parts.join(" ");
 }

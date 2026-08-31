@@ -23,6 +23,8 @@ function getAudio() {
   return audio;
 }
 
+let ctx: AudioContext | null = null;
+
 /** Call from a tap handler once so later programmatic playback is allowed. */
 export function primeAudio() {
   const a = getAudio();
@@ -30,10 +32,37 @@ export function primeAudio() {
   a.src = SILENCE;
   a.play().catch(() => {});
   try {
+    ctx ??= new AudioContext();
+    void ctx.resume();
+  } catch {
+    /* no WebAudio: no beep, the pill still shows "Listening" */
+  }
+  try {
     window.speechSynthesis?.cancel();
   } catch {
     /* ignore */
   }
+}
+
+/** A short beep — "speak now". Resolves after it has finished so the mic opens on silence. */
+export function beep(): Promise<void> {
+  return new Promise((resolve) => {
+    try {
+      ctx ??= new AudioContext();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = "sine";
+      o.frequency.value = 880;
+      g.gain.value = 0.15;
+      o.connect(g).connect(ctx.destination);
+      const t = ctx.currentTime;
+      o.start(t);
+      o.stop(t + 0.15);
+      window.setTimeout(resolve, 280);
+    } catch {
+      resolve();
+    }
+  });
 }
 
 export function useSpeech(enabled: boolean) {

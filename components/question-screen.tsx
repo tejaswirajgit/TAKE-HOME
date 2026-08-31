@@ -26,6 +26,9 @@ import { MicButton } from "./voice-lane";
 // read back what was heard → "haan" confirms, "nahi" or a new answer redoes.
 // The question stays on screen throughout; every tap still works.
 
+// The one-time "how this works" line, spoken before the first question of the visit.
+let introDone = false;
+
 export function QuestionScreen({ intake }: { intake: Intake }) {
   const step = intake.current!;
   const { answers, lang, readAloud } = intake;
@@ -86,7 +89,12 @@ export function QuestionScreen({ intake }: { intake: Intake }) {
     let extra = stored === undefined && inferred ? ` ${tx(lang, inferred.reason, inferred.hi)}` : "";
     // A blind patient must *hear* that the mic cannot work here, not just see it.
     if (handsFree && micAvailable() === false) extra += ` ${s.micUnavailable}`;
-    speech.speak(speakText(step, answers, lang) + extra, lang).then((done) => done && listenNext());
+    const intro = introDone ? "" : `${s.voiceIntro} `;
+    speech.speak(intro + speakText(step, answers, lang, true) + extra, lang).then((done) => {
+      if (!done) return; // cut off (step changed, or a dev double-run): the intro plays again next time
+      introDone = true;
+      listenNext();
+    });
     return () => speech.stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step.id, readAloud, lang]);
@@ -115,7 +123,7 @@ export function QuestionScreen({ intake }: { intake: Intake }) {
         // A miss ("uncle" on the family question) reads the options back with their numbers.
         const line =
           r.value != null
-            ? `${s.heard}: ${valueLabel(step, r.value, lang)}. ${s.sayYes}`
+            ? `${valueLabel(step, r.value, lang)} — ${s.isThatRight}`
             : step.kind === "number"
               ? s.tryAgainVoice
               : `${s.notAnOption} ${optionsSpeech(step, lang)}`;
