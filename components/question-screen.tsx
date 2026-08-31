@@ -35,7 +35,10 @@ export function QuestionScreen({ intake }: { intake: Intake }) {
   const answered = isAnswered(step, answers);
   const stored = answers[q.id];
   const inferred = useMemo(() => suggest(step, answers), [step, answers]);
-  const [heard, setHeard] = useState<{ transcript: string; value: AnswerValue | null } | null>(null);
+  // What the mic heard, keyed to its step: the moment the step changes it is stale, and
+  // reading it against a different question kind (string vs array) would crash.
+  const [heardRaw, setHeard] = useState<{ id: string; transcript: string; value: AnswerValue | null } | null>(null);
+  const heard = heardRaw && heardRaw.id === step.id ? heardRaw : null;
   // Hands-free trigger, keyed to the step so a new question never inherits the old count
   // (the mic must open after the question is read, not on mount).
   const [listen, setListen] = useState({ id: "", n: 0 });
@@ -105,7 +108,7 @@ export function QuestionScreen({ intake }: { intake: Intake }) {
       }
       const r = await parseAnswer(step, transcript, answers[q.id]);
       if (stepRef.current !== forStep) return; // the patient has moved on — never land on the next question
-      setHeard({ transcript, value: r.value });
+      setHeard({ id: forStep, transcript, value: r.value });
       if (readAloud) {
         const ok = r.value != null;
         retries.current = ok ? 0 : retries.current + 1;
