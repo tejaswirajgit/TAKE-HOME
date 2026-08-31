@@ -41,7 +41,7 @@ Radio/checkbox semantics on every chip, focus moves to each new question, live r
 |---|---|---|
 | Framework | Next.js 15 · React 19 · Tailwind · TypeScript | One static page + three tiny serverless routes; zero-config Vercel deploy. |
 | Speech → text | **Sarvam AI `saaras:v3`**, `mode: translit` | Built for Indian languages and Hinglish. `translit` returns romanized text ("pachees saal") so the free rule parser can read it. |
-| Text → answer | **Rules first** (`lib/voice-parse.ts`), then **Sarvam `sarvam-105b`** with `json_schema` output (`/api/parse`) | Most utterances resolve offline for free with token-matched Hinglish synonyms ("papa aur bhai" → father, siblings). The LLM is called only when rules give up, and is constrained to the question's own option values — it cannot invent. |
+| Text → answer | **Rules first** (`lib/voice-parse.ts`), then **Sarvam `sarvam-105b-conversations`** with `json_schema` output (`/api/parse`) | Most utterances resolve offline for free with token-matched Hinglish synonyms ("papa aur bhai" → father, siblings). The LLM is called only when rules give up, and is constrained to the question's own option values — it cannot invent. |
 | Text → speech | **Sarvam `bulbul:v3`** with browser `speechSynthesis` fallback | Natural Hindi/English voices; falls back to the device voice if the route is slow. |
 | Persistence | `localStorage` | On-device, no account, nothing leaves the browser. |
 | Vendor seam | `lib/voice.ts` is the only file that knows Sarvam | Swap STT/LLM/TTS by editing one file; the UI never sees a key. |
@@ -55,6 +55,8 @@ Bought: the platform, the speech models, the hosting. Built: the schema-driven f
 `corepack pnpm verify` (`scripts/verify-fill.ts`) pushes two made-up patients — **Priya, 34, PCOS, smoker** and **Rajesh, 58, diabetic, one transplant** — through the *same pure functions the app uses* (`lib/flow.ts`) and asserts: every step answered; every key, row and column of the clinic's official schema (`lib/intake-schema.json`, from haikustudio.ai) present; every exported value in that schema's option lists; follow-ups present exactly when triggered; Q6/Q7 "Not applicable" for Rajesh; the inference firing where expected; a table of Hinglish utterances parsed correctly; and the exported JSON matching checked-in snapshots (`scripts/fixtures/expected-*.json`). 210 checks.
 
 The review screen and the JSON export render from one answers object through the same functions, so what you see on the review is literally what is exported.
+
+**Live voice checks against a real key (31 Aug):** `/api/tts` returns a `bulbul:v3` WAV in both languages in about a second. Feeding that Hindi WAV back into `/api/stt` gave `Haan, papa ko bhi tha aur bhai ko bhi.` — romanized, exactly what the rule layer expects — and the rules mapped it to Father + Siblings without calling the LLM. `/api/parse` on seven Hinglish transcripts the rules cannot read ("band nahi hue abhi, do teen saal se chal raha hai" → more than 1 year; "thoda bahut pimple aa jaate hain kabhi kabhi" → yes; "mausam bahut garam hai aaj" → no verdict) came back 7/7 correct, each under 1.4 s. One finding from that test: plain `sarvam-105b` is a reasoning model and spent 9 s+ thinking before writing its JSON, so the fallback uses `sarvam-105b-conversations`, which answers in about a second.
 
 ## Run it
 

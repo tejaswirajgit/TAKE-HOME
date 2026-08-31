@@ -60,9 +60,9 @@ export async function classify(input: ClassifyInput, signal?: AbortSignal): Prom
     method: "POST",
     headers: { Authorization: `Bearer ${KEY()}`, "api-subscription-key": KEY(), "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "sarvam-105b",
+      model: "sarvam-105b-conversations", // plain 105b is a reasoning model: 9 s+ before the JSON; this one answers in ~1 s
       temperature: 0,
-      max_tokens: 200,
+      max_tokens: 300,
       messages: [
         { role: "system", content: system },
         { role: "user", content: user },
