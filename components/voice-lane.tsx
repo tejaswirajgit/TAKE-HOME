@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Lang } from "@/lib/intake-schema";
 import { STR } from "@/lib/strings";
 import { useVoice } from "@/lib/use-voice";
@@ -8,18 +9,27 @@ import { Icon } from "./icons";
 // The mic. As a pill under the question ("Speak your answer") or as a small
 // round dictation button inside a text field. Chips stay the primary control;
 // this is the fast lane, never a trap — it disappears when it can't work.
+// `listen` is a counter: each increment opens the mic hands-free (Voice mode,
+// after the question has been read out).
 
 export function MicButton({
   lang,
   onTranscript,
   compact,
+  listen = 0,
 }: {
   lang: Lang;
   onTranscript: (text: string) => void;
   compact?: boolean;
+  listen?: number;
 }) {
   const s = STR[lang];
   const voice = useVoice(onTranscript);
+  const { available, start } = voice;
+  useEffect(() => {
+    if (listen > 0 && available === true) start({ handsFree: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listen, available]);
   // Nothing until we know the mic can actually work — no flash of a control that then vanishes.
   if (voice.available !== true) return null;
   const busy = voice.status === "transcribing";
@@ -61,7 +71,7 @@ export function MicButton({
       </div>
       {voice.problem && (
         <p role="status" className="mt-2 text-sm text-ink/60">
-          {voice.problem === "short" ? s.tryAgain : s.tryAgain}
+          {s.tryAgain}
         </p>
       )}
     </div>

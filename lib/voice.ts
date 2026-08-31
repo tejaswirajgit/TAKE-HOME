@@ -13,7 +13,9 @@ const TTS_URL = "https://api.sarvam.ai/text-to-speech";
  *  so the free rule parser can read it. Language is auto-detected. */
 export async function transcribe(file: Blob, filename: string, signal?: AbortSignal): Promise<string> {
   const fd = new FormData();
-  fd.append("file", file, filename);
+  // Sarvam validates the part's content type and rejects MediaRecorder's exact
+  // string ("audio/webm;codecs=opus"); the bare type ("audio/webm") is accepted.
+  fd.append("file", new Blob([file], { type: file.type.split(";")[0] }), filename);
   fd.append("model", "saaras:v3");
   fd.append("mode", "translit");
   fd.append("language_code", "unknown");

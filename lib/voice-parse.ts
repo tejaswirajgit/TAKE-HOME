@@ -217,3 +217,9 @@ export function parseRules(step: Step, raw: string, prev?: AnswerValue): RuleRes
 }
 
 export const YESNO_LABELS = YESNO_OPTIONS;
+
+/** "haan" / "nahi" said to a Voice-mode read-back ("Heard: Father. Say yes to confirm"). */
+export function spokenYesNo(raw: string): "yes" | "no" | null {
+  const text = normalize(raw);
+  return yesNo(text, new Set(text.split(/\s+/)));
+}

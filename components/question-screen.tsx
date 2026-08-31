@@ -6,6 +6,7 @@ import { STR } from "@/lib/strings";
 import { AnswerValue, Detail, SECTIONS, TOTAL, tx } from "@/lib/intake-schema";
 import { Suggestion, bodyText, habitDone, isAnswered, speakText, suggest, valueLabel } from "@/lib/flow";
 import { parseAnswer } from "@/lib/answer-parser";
+import { spokenYesNo } from "@/lib/voice-parse";
 import { useSpeech } from "@/lib/use-speech";
 import { IntakeFrame, ProgressBar, SectionBadge, StickyNext } from "./intake-shell";
 import { TopBar } from "./top-bar";
@@ -19,6 +20,10 @@ import { MicButton } from "./voice-lane";
 //
 // Both inference and voice produce a *suggestion*: shown pre-selected, with a
 // reason line, and a Confirm button. Nothing is stored until the patient taps.
+//
+// Voice mode is a loop on top of that: read the question → open the mic →
+// read back what was heard → "haan" confirms, "nahi" or a new answer redoes.
+// The question stays on screen throughout; every tap still works.
 
 export function QuestionScreen({ intake }: { intake: Intake }) {
   const step = intake.current!;
@@ -30,6 +35,10 @@ export function QuestionScreen({ intake }: { intake: Intake }) {
   const stored = answers[q.id];
   const inferred = useMemo(() => suggest(step, answers), [step, answers]);
   const [heard, setHeard] = useState<{ transcript: string; value: AnswerValue | null } | null>(null);
+  // Hands-free trigger, keyed to the step so a new question never inherits the old count
+  // (the mic must open after the question is read, not on mount).
+  const [listen, setListen] = useState({ id: "", n: 0 });
+  const retries = useRef(0);
   const h1Ref = useRef<HTMLHeadingElement>(null);
   const stepRef = useRef(step.id);
   stepRef.current = step.id;
@@ -44,35 +53,65 @@ export function QuestionScreen({ intake }: { intake: Intake }) {
     }
     return stored === undefined ? inferred : undefined;
   }, [heard, inferred, stored, step, lang, s]);
+  const suggestionRef = useRef(suggestion);
+  suggestionRef.current = suggestion;
+
+  // Mic where speaking beats tapping; everywhere the parser can help in Voice mode.
+  const parsable = !["habits", "card"].includes(step.kind);
+  const showMic = parsable && ((q.mic && step.kind !== "yesno-text") || readAloud);
+  const handsFree = readAloud && showMic;
+  const handsFreeRef = useRef(handsFree);
+  handsFreeRef.current = handsFree;
+  const listenNext = useCallback(() => {
+    if (handsFreeRef.current) setListen((l) => ({ id: stepRef.current, n: l.n + 1 }));
+  }, []);
 
   useEffect(() => {
     setHeard(null);
+    retries.current = 0;
     window.scrollTo({ top: 0 });
-    if (step.kind === "number") document.querySelector<HTMLInputElement>("#answers input")?.focus();
+    // In Voice mode don't pop the keyboard for the age field — the mic is about to open.
+    if (step.kind === "number" && !readAloud) document.querySelector<HTMLInputElement>("#answers input")?.focus();
     else h1Ref.current?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step.id, step.kind]);
 
-  // Read-aloud: the question (and any pre-filled reason) on every step.
+  // Read-aloud: the question (and any pre-filled reason) on every step; then listen.
   useEffect(() => {
     if (!readAloud) return;
     const extra = stored === undefined && inferred ? ` ${tx(lang, inferred.reason, inferred.hi)}` : "";
-    speech.speak(speakText(step, answers, lang) + extra, lang);
+    speech.speak(speakText(step, answers, lang) + extra, lang).then((done) => done && listenNext());
     return () => speech.stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step.id, readAloud, lang]);
 
+  const onCtaRef = useRef<() => void>(() => {});
   const onTranscript = useCallback(
     async (transcript: string) => {
       const forStep = step.id;
+      // Voice mode: "haan" / "nahi" while a read-back is on screen answers the
+      // read-back ("is that right?"), not the question.
+      if (readAloud && suggestionRef.current) {
+        const yn = spokenYesNo(transcript);
+        if (yn === "yes") return onCtaRef.current();
+        if (yn === "no") {
+          setHeard(null);
+          speech.speak(s.sayAgain, lang).then((done) => done && listenNext());
+          return;
+        }
+      }
       const r = await parseAnswer(step, transcript, answers[q.id]);
       if (stepRef.current !== forStep) return; // the patient has moved on — never land on the next question
       setHeard({ transcript, value: r.value });
       if (readAloud) {
-        const line = r.value != null ? `${s.heard}: ${valueLabel(step, r.value, lang)}. ${s.confirm}?` : s.tryAgain;
-        speech.speak(line, lang);
+        const ok = r.value != null;
+        retries.current = ok ? 0 : retries.current + 1;
+        const line = r.value != null ? `${s.heard}: ${valueLabel(step, r.value, lang)}. ${s.sayYes}` : s.tryAgainVoice;
+        // After two misses, stop re-opening the mic by itself; the pill and the chips are still there.
+        speech.speak(line, lang).then((done) => done && (ok || retries.current < 3) && listenNext());
       }
     },
-    [step, answers, q.id, readAloud, lang, s, speech]
+    [step, answers, q.id, readAloud, lang, s, speech, listenNext]
   );
 
   const isCard = step.kind === "card";
@@ -82,9 +121,6 @@ export function QuestionScreen({ intake }: { intake: Intake }) {
   const eyebrow = isCard
     ? s.cardOf(q.id === "products" ? s.product : s.procedure, step.sub!.i, step.sub!.of)
     : tx(lang, SECTIONS[q.section].title, SECTIONS[q.section].hi);
-  // Mic where speaking beats tapping; everywhere the parser can help in read-aloud mode.
-  const parsable = !["habits", "card"].includes(step.kind);
-  const showMic = parsable && ((q.mic && step.kind !== "yesno-text") || readAloud);
 
   // ── The one button ───────────────────────────────────────────────────────
   const missing =
@@ -115,6 +151,7 @@ export function QuestionScreen({ intake }: { intake: Intake }) {
     // (a spoken "haan" on Q14 still needs its description).
     onCta = () => intake.answer(q.id, suggestion.value, isAnswered(step, { ...answers, [q.id]: suggestion.value }));
   }
+  onCtaRef.current = onCta;
 
   // ── Keyboard lane: 1–9 pick a chip, Enter continues, Backspace goes back ──
   useEffect(() => {
@@ -173,7 +210,7 @@ export function QuestionScreen({ intake }: { intake: Intake }) {
             <button
               type="button"
               className="btn-ghost -mr-3 flex items-center gap-1 text-sm"
-              onClick={() => speech.speak(speakText(step, answers, lang), lang)}
+              onClick={() => speech.speak(speakText(step, answers, lang), lang).then((done) => done && listenNext())}
               aria-label={s.readAgain}
             >
               <span aria-hidden>🔊</span> {s.readAgain}
@@ -191,7 +228,7 @@ export function QuestionScreen({ intake }: { intake: Intake }) {
         {hint && <p className="mt-2.5 text-ink/60">{hint}</p>}
         {body && <p className="mt-3 text-lg leading-relaxed text-ink/80">{body}</p>}
 
-        {showMic && <MicButton lang={lang} onTranscript={onTranscript} />}
+        {showMic && <MicButton lang={lang} onTranscript={onTranscript} listen={listen.id === step.id ? listen.n : 0} />}
 
         {suggestion && (
           <p role="status" className="mt-3 rounded-xl bg-black/[0.04] px-3 py-2 text-sm text-ink/70">

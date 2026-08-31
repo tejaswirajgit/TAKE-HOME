@@ -6,6 +6,8 @@ import type { Lang } from "./intake-schema";
 // Read-aloud. Sarvam's Indian voices via /api/tts, with the browser's own
 // speechSynthesis as the free fallback when the route is slow or missing. One
 // shared <audio> element, unlocked by the tap that turned the feature on (iOS).
+// speak() resolves true when the line finished playing and false when it was
+// cut off — Voice mode uses that to know when to open the mic.
 
 let audio: HTMLAudioElement | null = null;
 const cache = new Map<string, string>(); // text+lang → object URL
@@ -37,6 +39,7 @@ export function primeAudio() {
 export function useSpeech(enabled: boolean) {
   const [speaking, setSpeaking] = useState(false);
   const seq = useRef(0);
+  const pending = useRef<((done: boolean) => void) | null>(null);
 
   const stop = useCallback(() => {
     seq.current += 1;
@@ -51,58 +54,71 @@ export function useSpeech(enabled: boolean) {
       /* ignore */
     }
     setSpeaking(false);
+    pending.current?.(false);
+    pending.current = null;
   }, []);
 
-  const fallback = useCallback((text: string, lang: Lang, mine: number) => {
+  const fallback = useCallback((text: string, lang: Lang, onEnd: () => void) => {
     const synth = typeof window !== "undefined" ? window.speechSynthesis : undefined;
-    if (!synth) return;
+    if (!synth) return onEnd();
     const u = new SpeechSynthesisUtterance(text);
     const tag = lang === "hi" ? "hi-IN" : "en-IN";
     u.lang = tag;
     const voice = synth.getVoices().find((v) => v.lang.replace("_", "-").toLowerCase() === tag.toLowerCase());
     if (voice) u.voice = voice;
     u.rate = 0.95;
-    u.onend = () => mine === seq.current && setSpeaking(false);
+    u.onend = onEnd;
+    u.onerror = onEnd;
     synth.cancel();
     synth.speak(u);
   }, []);
 
   const speak = useCallback(
-    async (text: string, lang: Lang) => {
-      stop();
-      if (!enabled || !text) return;
-      const mine = seq.current;
-      setSpeaking(true);
-      const key = `${lang}|${text}`;
-      try {
-        let url = cache.get(key);
-        if (!url) {
-          const res = await fetch("/api/tts", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text, lang }),
-            signal: AbortSignal.timeout(4000),
-          });
-          if (!res.ok) throw new Error(String(res.status));
-          url = URL.createObjectURL(await res.blob());
-          // Small LRU-ish cap so one-off "Heard: …" lines don't pile up blobs.
-          if (cache.size >= 24) {
-            const [oldKey, oldUrl] = cache.entries().next().value as [string, string];
-            URL.revokeObjectURL(oldUrl);
-            cache.delete(oldKey);
+    (text: string, lang: Lang) =>
+      new Promise<boolean>((resolve) => {
+        stop();
+        if (!enabled || !text) return resolve(false);
+        const mine = seq.current;
+        setSpeaking(true);
+        pending.current = resolve;
+        const finish = () => {
+          if (mine !== seq.current) return;
+          setSpeaking(false);
+          pending.current = null;
+          resolve(true);
+        };
+        void (async () => {
+          const key = `${lang}|${text}`;
+          try {
+            let url = cache.get(key);
+            if (!url) {
+              const res = await fetch("/api/tts", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text, lang }),
+                signal: AbortSignal.timeout(4000),
+              });
+              if (!res.ok) throw new Error(String(res.status));
+              url = URL.createObjectURL(await res.blob());
+              // Small LRU-ish cap so one-off "Heard: …" lines don't pile up blobs.
+              if (cache.size >= 24) {
+                const [oldKey, oldUrl] = cache.entries().next().value as [string, string];
+                URL.revokeObjectURL(oldUrl);
+                cache.delete(oldKey);
+              }
+              cache.set(key, url);
+            }
+            if (mine !== seq.current) return;
+            const a = getAudio();
+            if (!a) throw new Error("no audio");
+            a.src = url;
+            a.onended = finish;
+            await a.play();
+          } catch {
+            if (mine === seq.current) fallback(text, lang, finish);
           }
-          cache.set(key, url);
-        }
-        if (mine !== seq.current) return;
-        const a = getAudio();
-        if (!a) throw new Error("no audio");
-        a.src = url;
-        a.onended = () => mine === seq.current && setSpeaking(false);
-        await a.play();
-      } catch {
-        if (mine === seq.current) fallback(text, lang, mine);
-      }
-    },
+        })();
+      }),
     [enabled, stop, fallback]
   );
 

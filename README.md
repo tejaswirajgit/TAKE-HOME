@@ -25,12 +25,12 @@ One route, one calm column, one question per screen. Every patient sees the same
 
 Then the **review screen** — the filled form, sections A–E, with Edit on every row and the schema-aligned JSON visible and copyable — and a done screen: *"Bas ho gaya. The doctor has your full picture. Please have a seat."*
 
-Progress is honest (`n / 16`), answers autosave on-device so a patient can put the phone down and resume, and nothing is ever committed from an inference or a spoken answer without a tap.
+Progress is honest (`n / 16`), answers autosave on-device so a patient can put the phone down and resume, and nothing is ever committed from an inference or a spoken answer without a tap (or, in Voice mode, a spoken yes).
 
-### Voice, both ways
-- **🎤 Speak your answer** appears where speaking beats tapping (the number, the multi-selects, the two pickers) and as dictation inside text fields. In **🔊 Read-aloud** mode it appears on every question.
-- **🔊 Read aloud** reads each question and its options in the chosen language, then reads back what it heard ("Suna: Father, Siblings — confirm?").
-- Both are a fast lane, never a trap: chips stay underneath, and the mic quietly disappears when it can't work (no permission, no key, or two failed calls).
+### Tap or Voice — the switch is in the top bar
+- **Tap** (default): chips and buttons. **🎤 Speak your answer** still appears where speaking beats tapping (the number, the multi-selects, the two pickers) and as dictation inside text fields.
+- **Voice**: for someone who is blind, low-vision, or simply tired of tapping. Every question and its options are read aloud in the chosen language (Sarvam `bulbul:v3`); when the reading ends the mic opens by itself and closes after ~1.2 s of silence; the app reads back what it understood ("Heard: Father, Siblings. Say yes to confirm, or say your answer again"); **"haan" / "yes" confirms, "nahi" redoes**, anything else is taken as a new answer. The question and its chips stay on screen the whole time, so a caregiver can follow along and any tap still wins. After two misses the mic stops re-opening on its own — the pill and the chips are still there.
+- Both are a fast lane, never a trap: nothing is committed from a spoken answer or an inference without a tap or a spoken yes, and the mic quietly disappears when it can't work (no permission, no key, or two failed calls).
 
 ### Accessible by design
 Radio/checkbox semantics on every chip, focus moves to each new question, live regions announce what was heard and copied, a skip link, visible focus rings, pinch-zoom left on, 60 px targets, reduced-motion respected. A laptop can drive the whole intake with **1–9**, **Enter** and **Backspace**. A blind or low-vision patient can finish it alone with a screen reader, or with read-aloud + voice.
@@ -56,7 +56,7 @@ Bought: the platform, the speech models, the hosting. Built: the schema-driven f
 
 The review screen and the JSON export render from one answers object through the same functions, so what you see on the review is literally what is exported.
 
-**Live voice checks against a real key (31 Aug):** `/api/tts` returns a `bulbul:v3` WAV in both languages in about a second. Feeding that Hindi WAV back into `/api/stt` gave `Haan, papa ko bhi tha aur bhai ko bhi.` — romanized, exactly what the rule layer expects — and the rules mapped it to Father + Siblings without calling the LLM. `/api/parse` on seven Hinglish transcripts the rules cannot read ("band nahi hue abhi, do teen saal se chal raha hai" → more than 1 year; "thoda bahut pimple aa jaate hain kabhi kabhi" → yes; "mausam bahut garam hai aaj" → no verdict) came back 7/7 correct, each under 1.4 s. One finding from that test: plain `sarvam-105b` is a reasoning model and spent 9 s+ thinking before writing its JSON, so the fallback uses `sarvam-105b-conversations`, which answers in about a second.
+**Live voice checks against a real key (31 Aug):** `/api/tts` returns a `bulbul:v3` WAV in both languages in about a second. Feeding that Hindi WAV back into `/api/stt` gave `Haan, papa ko bhi tha aur bhai ko bhi.` — romanized, exactly what the rule layer expects — and the rules mapped it to Father + Siblings without calling the LLM. `/api/parse` on seven Hinglish transcripts the rules cannot read ("band nahi hue abhi, do teen saal se chal raha hai" → more than 1 year; "thoda bahut pimple aa jaate hain kabhi kabhi" → yes; "mausam bahut garam hai aaj" → no verdict) came back 7/7 correct, each under 1.4 s. The whole Voice-mode loop was then driven end to end in headless Edge with that Hindi WAV playing as a fake microphone: Q3 read aloud → mic opened by itself → the clip recorded as webm/opus, transcribed, mapped to Father + Siblings and read back → the next "haan" confirmed it → Q4 read aloud before the mic opened again. That run caught a real bug: Sarvam rejects the multipart content type MediaRecorder reports (`audio/webm;codecs=opus`) and accepts the bare `audio/webm`, so `transcribe()` strips the codec parameter. Another finding: plain `sarvam-105b` is a reasoning model and spent 9 s+ thinking before writing its JSON, so the fallback uses `sarvam-105b-conversations`, which answers in about a second.
 
 ## Run it
 

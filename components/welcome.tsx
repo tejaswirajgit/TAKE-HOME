@@ -5,6 +5,8 @@ import { IntakeFrame } from "./intake-shell";
 import { TopBar } from "./top-bar";
 import { Intake } from "@/lib/use-intake";
 import { STR } from "@/lib/strings";
+import { primeAudio } from "@/lib/use-speech";
+import { primeMic } from "@/lib/use-voice";
 
 // One calm screen, one clear button. If a saved intake exists, resuming is the
 // primary action — people put the phone down in a waiting room.
@@ -12,6 +14,14 @@ import { STR } from "@/lib/strings";
 export function Welcome({ intake }: { intake: Intake }) {
   const s = STR[intake.lang];
   const answeredCount = intake.saved ? Object.keys(intake.saved.answers).length : 0;
+  const startAs = (voice: boolean) => {
+    if (voice) {
+      primeAudio();
+      primeMic();
+    }
+    intake.setReadAloud(voice);
+    intake.begin();
+  };
 
   return (
     <IntakeFrame>
@@ -48,9 +58,28 @@ export function Welcome({ intake }: { intake: Intake }) {
             </div>
           </div>
         ) : (
-          <button className="btn-primary mt-8 w-full" onClick={intake.begin}>
-            {s.begin}
-          </button>
+          <>
+            <button className="btn-primary mt-8 w-full" onClick={intake.begin}>
+              {s.begin}
+            </button>
+            <p className="mt-8 text-center text-sm text-ink/60">{s.differentWay}</p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {[
+                { voice: false, icon: "tap" as const, label: s.tapping },
+                { voice: true, icon: "mic" as const, label: s.speaking },
+              ].map((m) => (
+                <button
+                  key={m.label}
+                  type="button"
+                  onClick={() => startAs(m.voice)}
+                  className="flex flex-col items-center gap-1.5 rounded-2xl border border-black/10 bg-white py-4 text-sm text-ink/70 transition hover:border-ink/40"
+                >
+                  <Icon name={m.icon} width={20} height={20} />
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </>
         )}
 
         <p className="mt-10 text-center text-xs text-ink/60">{s.demo}</p>
