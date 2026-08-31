@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: theme("colors.paper");
+  color: theme("colors.ink");
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+@layer components {
+  /* One calm column: phone stays narrow, laptop widens a little. */
+  .frame {
+    @apply mx-auto w-full max-w-md md:max-w-xl;
+  }
+  .eyebrow {
+    @apply font-mono text-[11px] uppercase tracking-eyebrow text-ink/45;
+  }
+  /* Big, calm tap targets — designed for a 55-year-old on a phone. */
+  .choice {
+    @apply w-full text-left rounded-2xl border-2 px-5 py-4 text-lg
+      transition-all duration-150 active:scale-[0.99]
+      border-black/15 bg-white hover:border-black/40;
+    min-height: 60px;
+  }
+  .choice-sm {
+    @apply w-full rounded-xl border-2 px-4 py-2.5 text-base text-center
+      transition-all duration-150 active:scale-[0.99]
+      border-black/15 bg-white hover:border-black/40;
+    min-height: 48px;
+  }
+  .choice-selected {
+    @apply border-black bg-black text-white;
+  }
+  .btn-primary {
+    @apply rounded-full bg-ink px-8 py-4 text-lg font-medium text-white
+      transition active:scale-[0.98] disabled:opacity-40;
+    min-height: 56px;
+  }
+  .btn-ghost {
+    @apply rounded-full px-5 py-3 text-base text-ink/60 transition
+      hover:text-ink active:scale-[0.98];
+    min-height: 44px;
+  }
+  .pill {
+    @apply inline-flex items-center gap-2 rounded-full border border-black/15 bg-white px-4 py-2.5 text-base
+      transition hover:border-black/40 active:scale-[0.98];
+    min-height: 44px;
+  }
+}
+
+/* Keyboard users must always see where they are. */
+:where(button, a, input, textarea, summary):focus-visible {
+  outline: 3px solid theme("colors.ink");
+  outline-offset: 3px;
+  border-radius: 12px;
+}
+
+@keyframes fadein {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.fadein {
+  animation: fadein 0.25s ease;
+}
+
+/* The row the patient missed, pointed out once. */
+@keyframes flash {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(10, 10, 10, 0);
+  }
+  30% {
+    box-shadow: 0 0 0 4px rgba(10, 10, 10, 0.35);
+  }
+}
+.flash {
+  animation: flash 0.9s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

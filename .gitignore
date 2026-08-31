@@ -1,0 +1,26 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# next.js
+/.next/
+/out/
+/build
+next-env.d.ts
+*.tsbuildinfo
+
+# env — API keys never enter the repo
+.env
+.env*.local
+.env.local
+
+# not part of the submission
+/resource/
+/prompts/
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+.vercel

@@ -1,0 +1,79 @@
+{
+  "form": "GenoRoot Hair & Scalp Intake",
+  "age_hair_loss_began": 29,
+  "duration": "Over a year",
+  "family_history": [
+    "Mother had hair loss"
+  ],
+  "pattern": [
+    "Widening part line",
+    "Diffuse thinning"
+  ],
+  "diagnosed_conditions": [
+    "PCOS/PCOD"
+  ],
+  "menstrual_cycle": "Irregular",
+  "pregnancy_related": "Not applicable",
+  "adult_acne_oily_skin": "yes",
+  "excess_body_facial_hair": "yes",
+  "past_6_months": [
+    "High stress or emotional trauma"
+  ],
+  "habits": {
+    "smoking": "yes",
+    "smoking_severity": "Moderate 5-10/day",
+    "alcohol": "no",
+    "hard_water": "yes",
+    "hair_wash_frequency": "Alternate Days",
+    "heating_tools_styling_chemicals": "yes",
+    "salon_treatments": "yes",
+    "salon_treatment_detail": "Keratin"
+  },
+  "products": {
+    "OTC/Medicated Shampoos": {
+      "used": false
+    },
+    "Hair Oils/Serums": {
+      "used": true,
+      "duration": "3-6mo",
+      "helped": "no",
+      "side_effects": "no"
+    },
+    "Topical Minoxidil": {
+      "used": false
+    },
+    "Oral Minoxidil": {
+      "used": false
+    },
+    "Supplements": {
+      "used": true,
+      "duration": "<3mo",
+      "helped": "no",
+      "side_effects": "no"
+    }
+  },
+  "procedures": {
+    "PRP/GFC/iPRF": {
+      "done": false
+    },
+    "Stem Cells/Exosomes": {
+      "done": false
+    },
+    "Hair Transplant": {
+      "done": false
+    },
+    "Other": {
+      "done": false
+    }
+  },
+  "past_treatment_side_effects": "yes",
+  "describe": "Hair oils or serums — did not help. Supplements — did not help.",
+  "sample_type": "Saliva",
+  "consent": "yes",
+  "_meta": {
+    "language": "en",
+    "inferred": [
+      "past_treatment_side_effects"
+    ]
+  }
+}

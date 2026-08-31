@@ -1,0 +1,37 @@
+{
+  "_about": "Made-up patient. Rajesh, 58, diabetic, family history on both sides, one hair transplant, topical minoxidil gave side effects.",
+  "age_hair_loss_began": 32,
+  "duration": "over-1y",
+  "family_history": ["father", "siblings"],
+  "pattern": ["receding", "crown"],
+  "diagnosed_conditions": ["diabetes"],
+  "menstrual_cycle": "na",
+  "pregnancy_related": "na",
+  "adult_acne_oily_skin": "no",
+  "excess_body_facial_hair": "no",
+  "past_6_months": ["none"],
+  "habits": {
+    "smoking": { "value": "no" },
+    "alcohol": { "value": "yes" },
+    "hard_water": { "value": "no" },
+    "hair_wash_frequency": { "value": "daily" },
+    "heating_tools_styling_chemicals": { "value": "no" },
+    "salon_treatments": { "value": "no" }
+  },
+  "products": {
+    "shampoos": { "used": "yes", "duration": ">6mo", "helped": "yes", "side_effects": "no" },
+    "oils": { "used": "no" },
+    "topical_minoxidil": { "used": "yes", "duration": ">6mo", "helped": "yes", "side_effects": "yes" },
+    "oral_minoxidil": { "used": "no" },
+    "supplements": { "used": "no" }
+  },
+  "procedures": {
+    "prp": { "done": "no" },
+    "stem_cells": { "done": "no" },
+    "transplant": { "done": "yes", "sessions": "1-3", "helped": "yes" },
+    "other": { "done": "no" }
+  },
+  "past_treatment_side_effects": { "value": "yes", "detail": "Topical minoxidil — side effects." },
+  "sample_type": "blood",
+  "consent": "yes"
+}

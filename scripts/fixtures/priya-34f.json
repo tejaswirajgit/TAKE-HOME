@@ -1,0 +1,40 @@
+{
+  "_about": "Made-up patient. Priya, 34, PCOS, smoker (5-10 a day), tried oils and supplements without benefit.",
+  "age_hair_loss_began": 29,
+  "duration": "over-1y",
+  "family_history": ["mother"],
+  "pattern": ["part", "diffuse"],
+  "diagnosed_conditions": ["pcos"],
+  "menstrual_cycle": "irregular",
+  "pregnancy_related": "na",
+  "adult_acne_oily_skin": "yes",
+  "excess_body_facial_hair": "yes",
+  "past_6_months": ["stress"],
+  "habits": {
+    "smoking": { "value": "yes", "detail": "5-10" },
+    "alcohol": { "value": "no" },
+    "hard_water": { "value": "yes" },
+    "hair_wash_frequency": { "value": "alternate" },
+    "heating_tools_styling_chemicals": { "value": "yes" },
+    "salon_treatments": { "value": "yes", "detail": "Keratin" }
+  },
+  "products": {
+    "shampoos": { "used": "no" },
+    "oils": { "used": "yes", "duration": "3-6mo", "helped": "no", "side_effects": "no" },
+    "topical_minoxidil": { "used": "no" },
+    "oral_minoxidil": { "used": "no" },
+    "supplements": { "used": "yes", "duration": "<3mo", "helped": "no", "side_effects": "no" }
+  },
+  "procedures": {
+    "prp": { "done": "no" },
+    "stem_cells": { "done": "no" },
+    "transplant": { "done": "no" },
+    "other": { "done": "no" }
+  },
+  "past_treatment_side_effects": {
+    "value": "yes",
+    "detail": "Hair oils or serums — did not help. Supplements — did not help."
+  },
+  "sample_type": "saliva",
+  "consent": "yes"
+}

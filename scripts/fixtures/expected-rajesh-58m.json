@@ -1,0 +1,79 @@
+{
+  "form": "GenoRoot Hair & Scalp Intake",
+  "age_hair_loss_began": 32,
+  "duration": "Over a year",
+  "family_history": [
+    "Father had hair loss",
+    "Siblings with thinning or baldness"
+  ],
+  "pattern": [
+    "Receding hairline",
+    "Thinning at crown"
+  ],
+  "diagnosed_conditions": [
+    "Diabetes"
+  ],
+  "menstrual_cycle": "Not applicable",
+  "pregnancy_related": "Not applicable",
+  "adult_acne_oily_skin": "no",
+  "excess_body_facial_hair": "no",
+  "past_6_months": [],
+  "habits": {
+    "smoking": "no",
+    "alcohol": "yes",
+    "hard_water": "no",
+    "hair_wash_frequency": "Daily",
+    "heating_tools_styling_chemicals": "no",
+    "salon_treatments": "no"
+  },
+  "products": {
+    "OTC/Medicated Shampoos": {
+      "used": true,
+      "duration": ">6mo",
+      "helped": "yes",
+      "side_effects": "no"
+    },
+    "Hair Oils/Serums": {
+      "used": false
+    },
+    "Topical Minoxidil": {
+      "used": true,
+      "duration": ">6mo",
+      "helped": "yes",
+      "side_effects": "yes"
+    },
+    "Oral Minoxidil": {
+      "used": false
+    },
+    "Supplements": {
+      "used": false
+    }
+  },
+  "procedures": {
+    "PRP/GFC/iPRF": {
+      "done": false
+    },
+    "Stem Cells/Exosomes": {
+      "done": false
+    },
+    "Hair Transplant": {
+      "done": true,
+      "sessions": "1-3",
+      "helped": "yes"
+    },
+    "Other": {
+      "done": false
+    }
+  },
+  "past_treatment_side_effects": "yes",
+  "describe": "Topical minoxidil — side effects.",
+  "sample_type": "Blood",
+  "consent": "yes",
+  "_meta": {
+    "language": "en",
+    "inferred": [
+      "pregnancy_related",
+      "past_treatment_side_effects"
+    ]
+  }
+}
